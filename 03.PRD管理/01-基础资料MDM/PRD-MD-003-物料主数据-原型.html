@@ -1,0 +1,1170 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PRD-MD-003 物料主数据 · 高保真交互原型</title>
+<style>
+  /* ============================================================
+     设计令牌 — 对齐 lcdesign-web（LC Design）视觉基线
+     主色 #009100 · 正文 14px · 表头 #F8F7F7 · 圆角 4/8px
+     ============================================================ */
+  :root {
+    --bg: #F8F8F8; --panel: #FFFFFF; --sidebar-bg: #FFFFFF;
+    --ink: #0A0E0A; --sub: #3B3E3B; --muted: #9D9F9D;
+    --line: #E6E6E5; --line-soft: #F8F7F7;
+    --brand: #009100; --brand-hover: #00A800; --brand-dark: #007400;
+    --brand-weak: #E9FAEB; --brand-edge: #B7E0B9;
+    --red: #B91919; --red-weak: #F8E8E8;
+    --yellow: #C8A12B; --yellow-weak: #FAF6EA;
+    --blue: #2261DD; --blue-weak: #E9EEF9;
+    --shadow: 0 4px 10px rgba(10, 14, 10, .12);
+    --shadow-lg: 0 10px 24px rgba(10, 14, 10, .15);
+    --radius: 8px; --radius-sm: 4px; --radius-pill: 999px;
+    --t-fast: .15s ease;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { color: var(--sub); background: var(--bg); line-height: 1.5;
+         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", "PingFang SC", "Noto Sans SC", sans-serif;
+         font-size: 14px; }
+  button, select, textarea, input { font: inherit; }
+  button { cursor: pointer; }
+  .hidden { display: none !important; }
+  .mono { font-family: "SF Mono", Consolas, monospace; font-size: 13px; }
+  .muted { color: var(--muted); }
+
+  /* ===== 原型导航条（文档信息 + 界面切换） ===== */
+  .proto-bar { position: sticky; top: 0; z-index: 95; display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+               min-height: 64px; padding: 10px 16px; background: #fff; border-bottom: 1px solid var(--line); }
+  .proto-bar .pb-t { font-size: 16px; font-weight: 600; color: var(--ink); }
+  .proto-bar .pb-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .ptabs { display: flex; gap: 4px; margin-left: auto; flex-wrap: wrap; }
+  .ptab { height: 32px; padding: 0 12px; border: 0; border-radius: var(--radius-sm); background: transparent;
+          color: var(--sub); font-size: 14px; transition: all var(--t-fast); }
+  .ptab:hover { background: var(--line-soft); color: var(--brand); }
+  .ptab.active { background: var(--brand-weak); color: var(--brand); font-weight: 600; }
+
+  /* ===== 平台框架：左侧菜单 + 顶栏 + 内容 ===== */
+  .app { display: flex; min-height: calc(100vh - 64px); }
+  .sidebar { width: 200px; flex-shrink: 0; background: var(--sidebar-bg); border-right: 1px solid var(--line);
+             padding: 12px 8px; position: sticky; top: 64px; height: calc(100vh - 64px); overflow-y: auto; }
+  .sb-brand { display: flex; gap: 8px; align-items: center; height: 40px; padding: 0 8px 8px; }
+  .sb-mark { width: 28px; height: 28px; border-radius: var(--radius-sm); display: grid; place-items: center;
+             color: #fff; font-weight: 600; font-size: 12px; background: var(--brand); }
+  .sb-brand strong { font-size: 14px; font-weight: 600; color: var(--ink); }
+  .sb-group { color: var(--muted); font-size: 12px; padding: 12px 8px 4px; }
+  .sb-item { display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 12px;
+             border-radius: var(--radius-sm); font-size: 14px; color: var(--sub); transition: all var(--t-fast); }
+  .sb-item:hover { background: var(--line-soft); color: var(--brand); }
+  .sb-item.active { background: var(--brand-weak); color: var(--brand); font-weight: 500; }
+  .main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .topbar { min-height: 56px; background: #fff; border-bottom: 1px solid var(--line);
+            display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 0 16px;
+            position: sticky; top: 64px; z-index: 90; }
+  .page-head { display: flex; align-items: baseline; gap: 16px; min-width: 0; flex-wrap: wrap; }
+  .page-title { font-size: 16px; font-weight: 500; color: var(--ink); }
+  .page-sub { font-size: 14px; color: var(--sub); }
+  .user-chip { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--sub); }
+  .user-chip .ava { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center;
+                    color: #fff; font-size: 12px; font-weight: 600; background: var(--brand); }
+  .content { flex: 1; padding: 16px 16px 24px; min-width: 0; }
+
+  /* ===== 卡片 ===== */
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); margin-bottom: 16px; overflow: hidden; }
+  .card-h { min-height: 48px; padding: 0 16px; border-bottom: 1px solid var(--line-soft); font-weight: 600; font-size: 14px;
+            color: var(--ink); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .card-b { padding: 16px; }
+
+  /* ===== 按钮（LC Design 基线：32px / 14px / 4px 圆角） ===== */
+  .btn { height: 32px; padding: 0 16px; border: 1px solid var(--line); border-radius: var(--radius-sm);
+         color: var(--sub); background: #fff; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+         font-size: 14px; line-height: 1; transition: all var(--t-fast); }
+  .btn:hover { border-color: var(--brand); color: var(--brand); }
+  .btn:focus-visible { outline: 2px solid var(--brand-weak); outline-offset: 1px; }
+  .btn.primary { color: #fff; border-color: var(--brand); background: var(--brand); }
+  .btn.primary:hover { background: var(--brand-hover); border-color: var(--brand-hover); color: #fff; }
+  .btn.danger { color: #fff; border-color: var(--red); background: var(--red); }
+  .btn.danger:hover { opacity: .9; color: #fff; }
+  .btn.sm { height: 28px; padding: 0 10px; font-size: 13px; }
+
+  /* ===== 表格（14px / #F8F7F7 表头 / stripe） ===== */
+  table { width: 100%; border-collapse: collapse; font-size: 14px; color: var(--sub); }
+  th, td { padding: 12px; border-bottom: 1px solid var(--line-soft); text-align: left; vertical-align: middle; }
+  th { color: var(--sub); background: var(--line-soft); font-weight: 600; white-space: nowrap; border-bottom: 1px solid var(--line); }
+  tbody tr { transition: background var(--t-fast); }
+  tbody tr:hover { background: var(--line-soft); }
+  table.stripe tbody tr:nth-child(even) { background: #FCFBFB; }
+  tbody tr.selected, tbody tr.selected:hover { background: var(--brand-weak); }
+  .c-check { text-align: center; width: 40px; }
+
+  /* ===== 行内操作列（与工具栏同编号按钮共用逻辑） ===== */
+  .c-act { white-space: nowrap; }
+  .act { border: 0; background: none; padding: 0; height: auto; font-size: 13px; line-height: 20px;
+         color: var(--brand); text-decoration: none; transition: color var(--t-fast); }
+  .act:hover { color: var(--brand-hover); text-decoration: underline; }
+  .act:focus-visible { outline: 2px solid var(--brand-weak); outline-offset: 2px; border-radius: 2px; }
+  .act.danger { color: var(--red); }
+  .act.danger:hover { color: #D32020; text-decoration: underline; }
+  .act-sep { color: var(--line); margin: 0 6px; font-size: 12px; }
+  td.empty { text-align: center; color: var(--muted); padding: 32px 12px; }
+
+  /* ===== 标签（tag effect="light"） ===== */
+  .status { display: inline-flex; align-items: center; gap: 4px; height: 22px; border-radius: var(--radius-sm);
+            padding: 0 10px; border: 1px solid transparent; font-size: 12px; font-weight: 500; white-space: nowrap; }
+  .status.green { color: var(--brand); background: var(--brand-weak); border-color: var(--brand-edge); }
+  .status.gray { color: var(--sub); background: var(--line-soft); border-color: var(--line); }
+  .status.blue { color: var(--blue); background: var(--blue-weak); border-color: #D6E0F5; }
+  .status.yellow { color: #8C6D12; background: var(--yellow-weak); border-color: #EFE3BF; }
+  .status.red { color: var(--red); background: var(--red-weak); border-color: #F0D0D0; }
+
+  /* ===== 查询区 ===== */
+  .qgrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px 24px; }
+  .qitem { display: flex; align-items: center; gap: 8px; }
+  .qlabel { width: 96px; text-align: right; font-size: 14px; color: var(--sub); flex-shrink: 0; }
+  .qact { display: flex; gap: 8px; align-items: center; justify-content: flex-start; }
+
+  /* ===== 输入控件（32px / 14px / 4px 圆角） ===== */
+  .txt, .sel { width: 100%; height: 32px; padding: 0 12px; border: 1px solid var(--line);
+               border-radius: var(--radius-sm); font-size: 14px; color: var(--sub); background: #fff; outline: none;
+               transition: border-color var(--t-fast); }
+  .txt::placeholder, .ta::placeholder { color: var(--muted); }
+  .txt:focus, .sel:focus, .ta:focus { border-color: var(--brand); }
+  .txt:disabled { background: var(--bg); color: var(--muted); cursor: not-allowed; }
+  .ta { width: 100%; min-height: 72px; padding: 8px 12px; border: 1px solid var(--line); border-radius: var(--radius-sm);
+        font-size: 14px; color: var(--sub); background: #fff; outline: none; resize: vertical; transition: border-color var(--t-fast); }
+  input[type="checkbox"], input[type="radio"] { accent-color: var(--brand); margin: 0; }
+  .switch { position: relative; display: inline-flex; width: 40px; height: 20px; cursor: pointer; vertical-align: middle; }
+  .switch input { position: absolute; opacity: 0; width: 0; height: 0; }
+  .switch__core { position: relative; width: 40px; height: 20px; border-radius: 10px; background: var(--line);
+                  transition: background var(--t-fast); }
+  .switch__core::after { content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px;
+                         border-radius: 50%; background: #fff; transition: transform var(--t-fast); }
+  .switch input:checked + .switch__core { background: var(--brand); }
+  .switch input:checked + .switch__core::after { transform: translateX(20px); }
+  .switch input:focus-visible + .switch__core { outline: 2px solid var(--brand-weak); outline-offset: 1px; }
+
+  /* ===== 工具栏 / 分页（total/sizes/prev/pager/next/jumper，右对齐） ===== */
+  .toolbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--line-soft); }
+  .toolbar .sep { width: 1px; height: 16px; background: var(--line); margin: 0 4px; }
+  .pager { display: flex; justify-content: flex-end; align-items: center; gap: 8px; padding: 12px 16px;
+           color: var(--sub); font-size: 14px; flex-wrap: wrap; }
+  .pager b { color: var(--ink); font-weight: 600; }
+  .pg-btn { min-width: 24px; height: 24px; padding: 0 6px; border: 1px solid var(--line); background: #fff; border-radius: var(--radius-sm);
+            font-size: 13px; color: var(--sub); }
+  .pg-btn:hover { border-color: var(--brand); color: var(--brand); }
+  .pg-btn.active { border-color: var(--brand); color: var(--brand); font-weight: 600; }
+  .pg-sel { height: 28px; width: auto; padding: 0 8px; font-size: 13px; }
+  .pg-jump { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); }
+  .pg-input { width: 44px; height: 28px; padding: 0 8px; border: 1px solid var(--line); border-radius: var(--radius-sm);
+              text-align: center; color: var(--sub); background: #fff; outline: none; }
+  .pg-input:focus { border-color: var(--brand); }
+
+  /* ===== P2 表单弹窗（分区纵向折叠） ===== */
+  .modal.lg { width: 900px; max-width: 96vw; max-height: 86vh; display: flex; flex-direction: column; }
+  .modal.lg .modal-b { flex: 1; overflow-y: auto; padding: 16px; }
+  .sec { border: 1px solid var(--line); border-radius: var(--radius); margin-bottom: 12px; background: #fff; overflow: hidden; }
+  .sec-h { display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 16px; background: var(--line-soft);
+           font-weight: 600; font-size: 14px; color: var(--ink); cursor: pointer; user-select: none; transition: background var(--t-fast); }
+  .sec-h:hover { background: var(--brand-weak); }
+  .sec-h .arrow { font-size: 10px; color: var(--brand); transition: transform var(--t-fast); display: inline-block; }
+  .sec.closed .arrow { transform: rotate(-90deg); }
+  .sec-h .cnt { margin-left: auto; font-size: 12px; color: var(--muted); font-weight: 400; }
+  .sec-b { padding: 16px; border-top: 1px solid var(--line-soft); }
+  .sec.closed .sec-b { display: none; }
+  .fgrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 24px; }
+  .fitem { display: flex; align-items: flex-start; }
+  .flabel { width: 112px; text-align: right; padding-right: 12px; color: var(--sub); font-size: 14px;
+            flex-shrink: 0; line-height: 32px; }
+  .flabel .req { color: var(--red); margin-right: 4px; }
+  .fctrl { flex: 1; min-width: 0; }
+  .span2 { grid-column: 1 / -1; }
+  .hint { font-size: 12px; color: var(--muted); margin-top: 4px; line-height: 1.5; }
+  .radio { display: inline-flex; align-items: center; gap: 6px; margin-right: 16px; line-height: 32px; cursor: pointer; font-size: 14px; color: var(--sub); }
+  .chk-chip { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); border-radius: var(--radius-sm);
+              min-height: 28px; padding: 0 10px; font-size: 13px; color: var(--sub); cursor: pointer; background: #fff;
+              margin: 3px 8px 3px 0; transition: all var(--t-fast); }
+  .chk-chip:hover { border-color: var(--brand); color: var(--brand); }
+  .chk-chip:has(input:checked) { border-color: var(--brand); background: var(--brand-weak); color: var(--brand); font-weight: 500; }
+  .form-f { min-height: 56px; padding: 0 16px; border-top: 1px solid var(--line); display: flex; align-items: center;
+            justify-content: flex-end; gap: 8px; background: #fff; }
+  .sub-tb-bar { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; flex-wrap: wrap; }
+  .sub-tb-bar .hint { margin: 0 0 0 auto; }
+
+  /* ===== P3 详情页 ===== */
+  .dcard { border: 1px solid var(--line); border-radius: var(--radius); margin-bottom: 16px; overflow: hidden; }
+  .dcard-t { min-height: 44px; padding: 0 16px; background: var(--line-soft); border-bottom: 1px solid var(--line-soft);
+             font-weight: 600; font-size: 14px; color: var(--ink); display: flex; gap: 8px; align-items: center; }
+  .dcard-b { padding: 16px; }
+  .detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .detail-field { padding: 12px; border: 1px solid var(--line-soft); border-radius: var(--radius-sm); background: #FCFBFB; }
+  .detail-field span { display: block; color: var(--muted); font-size: 12px; }
+  .detail-field strong { display: block; margin-top: 4px; font-size: 14px; font-weight: 500; color: var(--ink); word-break: break-all; }
+  .detail-field .rule { font-size: 12px; color: var(--muted); font-weight: 400; font-family: "SF Mono", Consolas, monospace; }
+  .empty-box { border: 1px dashed var(--line); border-radius: var(--radius); padding: 24px; text-align: center;
+               color: var(--muted); font-size: 14px; background: #FCFBFB; }
+
+  /* ===== 弹窗（header 52 / footer 56 / 8px 圆角） ===== */
+  .mask { position: fixed; inset: 0; background: rgba(10, 14, 10, .4); display: flex; align-items: flex-start;
+          justify-content: center; padding-top: 10vh; z-index: 100; }
+  .modal { width: 500px; max-width: 92vw; background: #fff; border-radius: var(--radius); box-shadow: var(--shadow-lg);
+           animation: pop .18s ease; }
+  @keyframes pop { from { transform: scale(.96); opacity: 0; } }
+  .modal-h { min-height: 52px; padding: 0 20px; font-weight: 600; font-size: 16px; color: var(--ink);
+             border-bottom: 1px solid var(--line-soft); display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+  .dlg-tag { font-size: 12px; font-weight: 500; font-family: "SF Mono", Consolas, monospace;
+             background: var(--brand-weak); color: var(--brand); border-radius: var(--radius-sm); padding: 2px 8px; }
+  .modal-x { border: 0; background: none; color: var(--muted); font-size: 16px; line-height: 1; }
+  .modal-x:hover { color: var(--ink); }
+  .modal-b { padding: 20px; font-size: 14px; color: var(--sub); line-height: 1.6; }
+  .modal-f { min-height: 56px; padding: 0 20px; border-top: 1px solid var(--line-soft); display: flex;
+             align-items: center; justify-content: flex-end; gap: 8px; }
+  .modal-warn { display: flex; gap: 12px; align-items: flex-start; }
+  .warn-ic { width: 26px; height: 26px; border-radius: 50%; background: var(--yellow-weak); color: var(--yellow);
+             font-weight: 600; display: grid; place-items: center; flex-shrink: 0; font-size: 14px; }
+  .warn-ic.red { background: var(--red-weak); color: var(--red); }
+  .result-box { margin-top: 12px; background: var(--yellow-weak); border: 1px solid #EFE3BF; border-radius: var(--radius-sm); padding: 12px; }
+  .result-box a { color: var(--blue); }
+
+  /* ===== Toast（顶部居中，LC message 风格） ===== */
+  #toast { position: fixed; left: 50%; top: 80px; transform: translateX(-50%); z-index: 300;
+           display: flex; flex-direction: column; gap: 8px; align-items: center; }
+  .toast-item { padding: 10px 16px; border-radius: var(--radius-sm); color: #fff; font-size: 14px;
+                box-shadow: var(--shadow); animation: tin .2s ease; max-width: 80vw; }
+  @keyframes tin { from { opacity: 0; transform: translateY(-8px); } }
+  .toast-info { background: var(--sub); }
+  .toast-success { background: var(--brand); }
+  .toast-error { background: var(--red); }
+  .toast-warn { background: var(--yellow); }
+
+  /* ===== P9 关系图 ===== */
+  .p9-svg { width: 100%; height: auto; display: block; min-width: 900px; }
+  .p9-wrap { overflow-x: auto; }
+  .note-strip { border: 1px solid var(--brand-edge); background: #F6FBF6; border-radius: var(--radius);
+                padding: 12px 16px; font-size: 14px; color: var(--sub); line-height: 1.6; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════ 原型导航条 ═══════════ -->
+<div class="proto-bar">
+  <div>
+    <div class="pb-t">PRD-MD-003 物料主数据 · 高保真交互原型</div>
+    <div class="pb-sub">基础资料 MDM · 商品主数据-物料 · V1.0（草稿） · 依据 3.1 原型规划实现 P1/P2/P3/P9 + D1~D5，按钮 B01~B22（P1 含行内操作列）与业务规则 R-MD27~R-MD35 可交互体验</div>
+  </div>
+  <div class="ptabs">
+    <button class="ptab active" data-k="p1">P1 物料列表</button>
+    <button class="ptab" data-k="p2">P2 表单弹窗</button>
+    <button class="ptab" data-k="p3">P3 物料详情</button>
+    <button class="ptab" data-k="p9">P9 按钮关系总览</button>
+  </div>
+</div>
+
+<div class="app">
+  <!-- ═══════════ 左侧菜单 ═══════════ -->
+  <aside class="sidebar">
+    <div class="sb-brand"><div class="sb-mark">OT</div><strong>OTWB 平台</strong></div>
+    <div class="sb-group">基础资料</div>
+    <div class="sb-item">客户</div>
+    <div class="sb-item">承运商</div>
+    <div class="sb-item active">物料</div>
+    <div class="sb-item">包装</div>
+    <div class="sb-item">地址</div>
+    <div class="sb-group">订单管理 OMS</div>
+    <div class="sb-item">销售订单</div>
+    <div class="sb-item">发货订单</div>
+    <div class="sb-group">运输管理 TMS</div>
+    <div class="sb-item">运单</div>
+    <div class="sb-item">配载计划</div>
+    <div class="sb-group">结算管理 BMS</div>
+    <div class="sb-item">应收凭证</div>
+    <div class="sb-item">对账单</div>
+    <div class="sb-group">系统管理</div>
+    <div class="sb-item">用户与角色</div>
+  </aside>
+
+  <!-- ═══════════ 主区域 ═══════════ -->
+  <main class="main">
+    <div class="topbar">
+      <div class="page-head">
+        <span class="page-title">物料主数据</span>
+        <span class="page-sub">基础资料 / 商品主数据 / 物料 · 维护物料档案、规格包装与管控属性</span>
+      </div>
+      <div class="user-chip"><div class="ava">张</div>主数据管理员 · 张三</div>
+    </div>
+
+    <div class="content">
+
+      <!-- ═══════════ P1 物料列表 ═══════════ -->
+      <section id="screen-p1">
+        <div class="card">
+          <div class="card-b">
+            <div class="qgrid">
+              <div class="qitem"><div class="qlabel">物料编码</div><input class="txt mono" id="q-code" placeholder="支持模糊匹配"></div>
+              <div class="qitem"><div class="qlabel">物料名称</div><input class="txt" id="q-name" placeholder="支持模糊匹配"></div>
+              <div class="qitem"><div class="qlabel">物料组</div>
+                <select class="sel" id="q-group">
+                  <option>全部</option><option>成品</option><option>半成品</option><option>原材料</option><option>辅料</option><option>包装材料</option>
+                </select></div>
+              <div class="qitem"><div class="qlabel">是否SN管理</div>
+                <select class="sel" id="q-sn"><option>全部</option><option>是</option><option>否</option></select></div>
+              <div class="qitem"><div class="qlabel">是否危险品</div>
+                <select class="sel" id="q-danger"><option>全部</option><option>是</option><option>否</option></select></div>
+              <div class="qitem"><div class="qlabel">是否启用</div>
+                <select class="sel" id="q-enabled"><option>全部</option><option>是</option><option>否</option></select></div>
+              <div class="qact">
+                <button class="btn primary" onclick="renderList()">查 询</button>
+                <button class="btn" onclick="resetQuery()">重 置</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-h">物料列表 <span class="muted" style="font-weight:400;font-size:11px">P1 主界面</span></div>
+          <div class="toolbar">
+            <button class="btn primary" onclick="tb('add')">＋ 新增</button>
+            <button class="btn" onclick="tb('delete')">删除</button>
+            <span class="sep"></span>
+            <button class="btn" onclick="tb('enable')">启用</button>
+            <button class="btn" onclick="tb('disable')">停用</button>
+            <span class="sep"></span>
+            <button class="btn" onclick="tb('sync')">分仓同步</button>
+            <span class="sep"></span>
+            <button class="btn" onclick="tb('import')">导入</button>
+            <button class="btn" onclick="tb('export')">导出</button>
+          </div>
+          <table class="stripe">
+            <thead>
+              <tr>
+                <th class="c-check"><input type="checkbox" id="ck-all"></th>
+                <th>物料编码</th><th>物料名称</th><th>物料组</th>
+                <th>长×宽×高（cm）</th><th>净重（kg）</th><th>包装代码</th>
+                <th>是否SN管理</th><th>是否危险品</th><th>是否启用</th>
+                <th>授权租户数</th><th>最后更新时间</th><th style="width:180px">操作</th>
+              </tr>
+            </thead>
+            <tbody id="p1-tbody"></tbody>
+          </table>
+          <div class="pager">
+            <span>共 <b id="p1-count">0</b> 条</span>
+            <span class="muted">已勾选 <b id="p1-selcount">0</b> 条</span>
+            <select class="sel pg-sel" aria-label="每页条数">
+              <option>10 条/页</option><option>20 条/页</option><option>50 条/页</option>
+            </select>
+            <button class="pg-btn" aria-label="上一页">‹</button>
+            <button class="pg-btn active">1</button>
+            <button class="pg-btn" aria-label="下一页">›</button>
+            <span class="pg-jump">前往 <input class="pg-input" value="1" aria-label="页码"> 页</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════════ P2 新增/编辑物料（弹窗表单 · 分区折叠） ═══════════ -->
+      <div class="mask hidden" id="dlg-p2" style="padding-top:80px">
+        <div class="modal lg">
+          <div class="modal-h"><span id="p2-title">新增物料</span>
+            <span class="dlg-tag" id="p2-tag">P2 新增模式</span>
+            <span style="flex:1"></span>
+            <span class="muted" style="font-weight:400;font-size:11px;margin-right:10px">分区纵向展示 · 点击标题栏折叠/展开</span>
+            <button class="modal-x" onclick="cancelForm()">✕</button>
+          </div>
+          <div class="modal-b">
+
+          <!-- 分区1 基本信息 -->
+          <div class="sec">
+            <div class="sec-h" onclick="toggleSec(this)"><span class="arrow">▼</span>基本信息<span class="cnt">必填：物料编码、物料名称、物料组</span></div>
+            <div class="sec-b">
+            <div class="fgrid">
+              <div class="fitem"><div class="flabel"><span class="req">*</span>物料编码</div>
+                <div class="fctrl"><input class="txt mono" id="f-id" maxlength="30" placeholder="仅字母、数字、-、_" oninput="markDirty()">
+                <div class="hint">物料唯一编码，手工录入；域内唯一（R-MD27），保存后不可修改</div></div></div>
+              <div class="fitem"><div class="flabel"><span class="req">*</span>物料名称</div>
+                <div class="fctrl"><input class="txt" id="f-name" maxlength="120" oninput="markDirty()"><div class="hint">物料全称</div></div></div>
+              <div class="fitem"><div class="flabel"><span class="req">*</span>物料组</div>
+                <div class="fctrl"><select class="sel" id="f-group" onchange="markDirty()">
+                  <option value="">请选择物料组</option>
+                  <option>成品</option><option>半成品</option><option>原材料</option><option>辅料</option><option>包装材料</option>
+                </select><div class="hint">数据字典：物料组（字典自定义维护）</div></div></div>
+              <div class="fitem"><div class="flabel"><span class="req">*</span>是否启用</div>
+                <div class="fctrl">
+                  <label class="radio"><input type="radio" name="f-enabled" value="是" checked onchange="markDirty()">是</label>
+                  <label class="radio"><input type="radio" name="f-enabled" value="否" onchange="markDirty()">否</label>
+                  <div class="hint">停用后新建单据不可选择该物料，历史单据不受影响</div></div></div>
+              <div class="fitem span2"><div class="flabel">物料描述</div>
+                <div class="fctrl"><textarea class="ta" id="f-desc" maxlength="500" placeholder="物料档案补充说明" oninput="markDirty()"></textarea></div></div>
+            </div>
+            </div>
+          </div>
+
+          <!-- 分区2 规格与包装 -->
+          <div class="sec">
+            <div class="sec-h" onclick="toggleSec(this)"><span class="arrow">▼</span>规格与包装<span class="cnt">长/宽/高单位 cm · 净重单位 kg · 最多 3 位小数（R-MD28）</span></div>
+            <div class="sec-b">
+            <div class="fgrid">
+              <div class="fitem"><div class="flabel">物料长（cm）</div>
+                <div class="fctrl"><input class="txt mono" id="f-len" type="number" step="0.001" min="0" placeholder="大于 0，最多 3 位小数" oninput="updateVol()">
+                </div></div>
+              <div class="fitem"><div class="flabel">物料宽（cm）</div>
+                <div class="fctrl"><input class="txt mono" id="f-wid" type="number" step="0.001" min="0" placeholder="大于 0，最多 3 位小数" oninput="updateVol()">
+                </div></div>
+              <div class="fitem"><div class="flabel">物料高（cm）</div>
+                <div class="fctrl"><input class="txt mono" id="f-hei" type="number" step="0.001" min="0" placeholder="大于 0，最多 3 位小数" oninput="updateVol()">
+                </div></div>
+              <div class="fitem"><div class="flabel">净重（kg）</div>
+                <div class="fctrl"><input class="txt mono" id="f-wt" type="number" step="0.001" min="0" placeholder="大于 0，最多 3 位小数" oninput="updateVol()">
+                <div class="hint">供配载载重校验与计费引用</div></div></div>
+              <div class="fitem"><div class="flabel">单件体积（m³）</div>
+                <div class="fctrl"><input class="txt mono" id="f-vol" readonly value="—">
+                <div class="hint">按 长×宽×高 自动计算（R-MD28），供订单体积、配载与计费引用</div></div></div>
+              <div class="fitem"><div class="flabel">包装代码</div>
+                <div class="fctrl"><select class="sel" id="f-pkg" onchange="onPkg()"></select>
+                <div class="hint" id="f-pkg-info">取自包装主数据（另册定义）；选择后带出包装名称与规格（R-MD29）</div></div></div>
+            </div>
+            </div>
+          </div>
+
+          <!-- 分区3 管控属性 -->
+          <div class="sec">
+            <div class="sec-h" onclick="toggleSec(this)"><span class="arrow">▼</span>管控属性<span class="cnt">SN 管理 · 危险品标识</span></div>
+            <div class="sec-b">
+            <div class="fgrid">
+              <div class="fitem"><div class="flabel"><span class="req">*</span>是否SN管理</div>
+                <div class="fctrl">
+                  <label class="radio"><input type="radio" name="f-sn" value="否" checked onchange="markDirty()">否</label>
+                  <label class="radio"><input type="radio" name="f-sn" value="是" onchange="markDirty()">是</label>
+                  <div class="hint">=是时，出入库订单、发货订单与运单货物行需录入/回传序列号 SN，按 SN 明细收发货核对（R-MD30）</div></div></div>
+              <div class="fitem"><div class="flabel"><span class="req">*</span>是否危险品</div>
+                <div class="fctrl">
+                  <label class="radio"><input type="radio" name="f-danger" value="否" checked onchange="onDanger()">否</label>
+                  <label class="radio"><input type="radio" name="f-danger" value="是" onchange="onDanger()">是</label>
+                  <div class="hint">=是时，单据、配载与运单全程展示危险品标识（R-MD31）</div></div></div>
+            </div>
+            <div class="result-box hidden" id="danger-warn" style="margin-top:12px">
+              <b>危险品物料：</b>请确认承运商具备危险品运输资质；配载指派承运商时系统将校验并提示（R-MD31）。
+            </div>
+            </div>
+          </div>
+
+          <!-- 分区4 授权租户 -->
+          <div class="sec">
+            <div class="sec-h" onclick="toggleSec(this)"><span class="arrow">▼</span>授权租户<span class="cnt" id="sec-tenant-cnt">0 个</span></div>
+            <div class="sec-b">
+            <div class="sub-tb-bar">
+              <button class="btn sm primary" onclick="tenantAdd()">＋ 新增行</button>
+              <button class="btn sm" onclick="tenantDel()">删除行</button>
+              <button class="btn sm" onclick="linkTenants()">关 联</button>
+              <span class="hint">一个物料可关联多个协同租户，同一租户不可重复（R-MD33）；关联后支持委托第三方物流运输</span>
+            </div>
+            <table>
+              <thead><tr>
+                <th class="c-check"><input type="checkbox" onchange="toggleAll(this,'#tenant-tbody')"></th>
+                <th style="width:44px">序号</th><th style="width:190px">租户ID *</th><th>租户名称</th>
+                <th style="width:100px">租户状态</th><th style="width:170px">关联时间</th>
+              </tr></thead>
+              <tbody id="tenant-tbody"></tbody>
+            </table>
+            </div>
+          </div>
+
+          </div><!-- /modal-b -->
+          <div class="form-f">
+            <button class="btn" onclick="cancelForm()">取 消</button>
+            <button class="btn primary" onclick="saveForm()">保 存</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════════ P3 物料详情 ═══════════ -->
+      <section id="screen-p3" class="hidden">
+        <div class="card">
+          <div class="card-h">
+            <span id="p3-title">物料详情</span>
+            <span id="p3-tags"></span>
+            <span style="flex:1"></span>
+            <button class="btn primary sm" onclick="p3Edit()">编 辑</button>
+            <button class="btn sm" onclick="switchScreen('p1')">返 回</button>
+          </div>
+          <div class="card-b">
+            <div class="dcard">
+              <div class="dcard-t">基本信息</div>
+              <div class="dcard-b"><div class="detail-grid" id="p3-base"></div></div>
+            </div>
+            <div class="dcard">
+              <div class="dcard-t">规格与包装</div>
+              <div class="dcard-b"><div class="detail-grid" id="p3-spec"></div></div>
+            </div>
+            <div class="dcard">
+              <div class="dcard-t">管控属性</div>
+              <div class="dcard-b"><div class="detail-grid" id="p3-ctrl"></div></div>
+            </div>
+            <div class="dcard">
+              <div class="dcard-t">授权租户</div>
+              <div class="dcard-b" style="padding:0"><table id="p3-tenant" class="stripe"></table></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════════ P9 按钮—弹窗关系总览 ═══════════ -->
+      <section id="screen-p9" class="hidden">
+        <div class="card">
+          <div class="card-h">P9 按钮—弹窗/页面跳转关系总览
+            <span class="muted" style="font-weight:400;font-size:11px">对应 3.1.1 按钮—弹窗/页面映射表</span></div>
+          <div class="card-b p9-wrap">
+            <svg class="p9-svg" viewBox="0 0 1120 640" xmlns="http://www.w3.org/2000/svg" font-family="Microsoft YaHei, sans-serif">
+              <defs>
+                <marker id="ah" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+                  <path d="M0,0 L9,4.5 L0,9 z" fill="#009100"/>
+                </marker>
+              </defs>
+
+              <!-- P1 主界面 -->
+              <rect x="30" y="70" width="330" height="430" rx="10" fill="#ffffff" stroke="#E6E6E5"/>
+              <text x="50" y="102" font-size="15" font-weight="800" fill="#0A0E0A">P1 物料列表（主界面）</text>
+              <text x="50" y="122" font-size="11" fill="#9D9F9D">查询条件区 + 工具栏 + 列表（含行内操作列）+ 分页</text>
+              <line x1="30" y1="136" x2="360" y2="136" stroke="#F8F7F7"/>
+
+              <!-- 工具栏按钮（编辑 B02 / 查看详情 B04 仅行内提供，不在工具栏） -->
+              <text x="50" y="156" font-size="11" fill="#9D9F9D">工具栏</text>
+              <g font-size="12" text-anchor="middle">
+                <rect x="50" y="164" width="118" height="26" rx="5" fill="#E9FAEB" stroke="#B7E0B9"/><text x="109" y="181" fill="#007400" font-weight="700">新增 B01</text>
+                <rect x="50" y="194" width="118" height="26" rx="5" fill="#E9FAEB" stroke="#B7E0B9"/><text x="109" y="211" fill="#007400" font-weight="700">删除 B03</text>
+                <rect x="50" y="224" width="118" height="26" rx="5" fill="#F8F8F8" stroke="#E6E6E5"/><text x="109" y="241" fill="#9D9F9D" font-weight="700">启用 B07</text>
+                <rect x="50" y="254" width="118" height="26" rx="5" fill="#E9FAEB" stroke="#B7E0B9"/><text x="109" y="271" fill="#007400" font-weight="700">停用 B08</text>
+                <rect x="50" y="284" width="118" height="26" rx="5" fill="#E9FAEB" stroke="#B7E0B9"/><text x="109" y="301" fill="#007400" font-weight="700">分仓同步 B09</text>
+                <rect x="50" y="314" width="118" height="26" rx="5" fill="#E9FAEB" stroke="#B7E0B9"/><text x="109" y="331" fill="#007400" font-weight="700">导入 B05</text>
+                <rect x="50" y="344" width="118" height="26" rx="5" fill="#E9FAEB" stroke="#B7E0B9"/><text x="109" y="361" fill="#007400" font-weight="700">导出 B06</text>
+              </g>
+              <text x="180" y="241" font-size="11.5" fill="#9D9F9D">直接执行，无弹窗（B07）</text>
+
+              <!-- 列表行内操作列（每行） -->
+              <text x="50" y="396" font-size="11" fill="#9D9F9D">列表行内操作列（每行）</text>
+              <g text-anchor="middle">
+                <rect x="50" y="404" width="118" height="26" rx="5" fill="#E9EEF9" stroke="#B7D7F0"/><text x="109" y="421" font-size="12" fill="#2261DD" font-weight="700">详情 B04</text>
+                <rect x="180" y="404" width="118" height="26" rx="5" fill="#E9EEF9" stroke="#B7D7F0"/><text x="239" y="421" font-size="12" fill="#2261DD" font-weight="700">编辑 B02</text>
+                <rect x="50" y="434" width="118" height="26" rx="5" fill="#E9FAEB" stroke="#B7E0B9"/><text x="109" y="451" font-size="12" fill="#007400" font-weight="700">删除 B03</text>
+                <rect x="180" y="434" width="118" height="26" rx="5" fill="#E9FAEB" stroke="#B7E0B9"/><text x="239" y="451" font-size="11" fill="#007400" font-weight="700">停用/启用 B07·B08</text>
+              </g>
+
+              <!-- P2 / P3 -->
+              <rect x="720" y="36" width="370" height="78" rx="10" fill="#FAF6EA" stroke="#E0C98F"/>
+              <text x="740" y="64" font-size="14" font-weight="800" fill="#0A0E0A">P2 新增/编辑物料（弹窗表单）</text>
+              <text x="740" y="88" font-size="11" fill="#3B3E3B">纵向折叠区：基本信息 / 规格与包装 / 管控属性 / 授权租户</text>
+              <text x="1070" y="64" font-size="11" fill="#9D9F9D" text-anchor="end">← 新增 B01 / 行内编辑 B02</text>
+
+              <rect x="720" y="132" width="370" height="62" rx="10" fill="#E9FAEB" stroke="#009100"/>
+              <text x="740" y="157" font-size="14" font-weight="800" fill="#007400">P3 物料详情（只读页）</text>
+              <text x="740" y="178" font-size="11" fill="#3B3E3B">分组卡片展示全部字段</text>
+
+              <!-- D1~D5 -->
+              <g font-size="13">
+                <rect x="720" y="212" width="370" height="48" rx="8" fill="#FAF6EA" stroke="#E0C98F"/>
+                <text x="740" y="241" font-weight="800" fill="#0A0E0A">D1 删除确认框</text>
+                <rect x="720" y="272" width="370" height="48" rx="8" fill="#FAF6EA" stroke="#E0C98F"/>
+                <text x="740" y="301" font-weight="800" fill="#0A0E0A">D2 停用确认框</text>
+                <rect x="720" y="332" width="370" height="48" rx="8" fill="#FAF6EA" stroke="#E0C98F"/>
+                <text x="740" y="361" font-weight="800" fill="#0A0E0A">D3 分仓同步确认框</text>
+                <rect x="720" y="392" width="370" height="48" rx="8" fill="#FAF6EA" stroke="#E0C98F"/>
+                <text x="740" y="421" font-weight="800" fill="#0A0E0A">D4 导入弹窗</text>
+                <rect x="720" y="452" width="370" height="48" rx="8" fill="#FAF6EA" stroke="#E0C98F"/>
+                <text x="740" y="481" font-weight="800" fill="#0A0E0A">D5 导出弹窗</text>
+              </g>
+              <g font-size="11" fill="#9D9F9D" text-anchor="end">
+                <text x="1070" y="241">← 删除 B03（工具栏/行内）</text>
+                <text x="1070" y="301">← 停用 B08（工具栏/行内）</text>
+                <text x="1070" y="361">← 分仓同步 B09</text>
+                <text x="1070" y="421">← 导入 B05</text>
+                <text x="1070" y="481">← 导出 B06</text>
+              </g>
+
+              <!-- 虚线箭头（与按钮 y 对齐；上=工具栏，下=行内操作列） -->
+              <g fill="none" stroke="#009100" stroke-width="1.6" stroke-dasharray="6 4" marker-end="url(#ah)">
+                <path d="M168 177 C 430 177, 470 70, 714 70"/>
+                <path d="M168 207 C 430 207, 470 236, 714 236"/>
+                <path d="M168 267 C 430 267, 470 296, 714 296"/>
+                <path d="M168 297 C 430 297, 470 356, 714 356"/>
+                <path d="M168 327 C 430 327, 470 416, 714 416"/>
+                <path d="M168 357 C 430 357, 470 476, 714 476"/>
+                <path d="M168 417 C 430 417, 470 163, 714 163"/>
+                <path d="M298 417 C 450 417, 470 88, 714 88"/>
+                <path d="M168 447 C 430 447, 470 240, 714 240"/>
+                <path d="M298 447 C 450 447, 470 300, 714 300"/>
+              </g>
+
+              <!-- 底部说明 -->
+              <rect x="30" y="520" width="1060" height="100" rx="8" fill="#F8F8F8" stroke="#E6E6E5"/>
+              <line x1="50" y1="545" x2="88" y2="545" stroke="#009100" stroke-width="1.6" stroke-dasharray="6 4"/>
+              <text x="96" y="549" font-size="11.5" fill="#3B3E3B">虚线箭头 = 单击按钮后打开目标弹窗/页面（本原型中均可实际点击体验）</text>
+              <text x="50" y="570" font-size="11.5" fill="#3B3E3B">直接执行、无弹窗的按钮：P1【启用 B07】；P2【保存 B10 / 取消 B11 / 新增行·删除行 B12·B13 / 关联 B14】</text>
+              <text x="50" y="588" font-size="11.5" fill="#3B3E3B">P3【编辑 B15 / 返回 B16】；弹窗内【确认 B17~B19】【下载模板 B20】【上传附件 B21】【导出 B22】</text>
+              <text x="50" y="606" font-size="11.5" fill="#3B3E3B">P1 列表每行提供行内操作【详情 / 编辑 / 删除 / 停用·启用】（图中蓝色）；编辑 B02 与详情 B04 仅行内提供、工具栏不设；删除/停用/启用与工具栏按钮共用逻辑</text>
+            </svg>
+          </div>
+        </div>
+        <div class="note-strip">
+          <b>体验路径：</b>P1 每行均提供行内操作【详情 / 编辑 / 删除 / 停用·启用】，直接对该行执行，无需先勾选（编辑/详情仅行内提供，工具栏不设）；工具栏提供新增、删除、启用、停用、分仓同步（批量）、导入、导出，勾选记录后执行。【新增/编辑】弹出 P2 表单弹窗（分区纵向展示，点击分区标题栏可折叠/展开），保存校验依据 R-MD27（物料编码唯一）、R-MD28（规格取值）与 R-MD29（包装需启用）；【详情】进入 P3 详情页。规则演示数据：M-30001/M-30003/M-30006 已被业务单据引用（删除时触发 R-MD34）；M-30006 引用的包装 PKG-004 已停用（R-MD29 存量引用不受影响演示）；M-30003、M-30006 为危险品物料（R-MD31）；M-30008 已授权 2 个租户，重复关联同一租户触发 R-MD33；长/宽/高/净重录入 0、负数或超过 3 位小数触发 R-MD28。
+        </div>
+      </section>
+
+    </div>
+  </main>
+</div>
+
+<!-- ═══════════ D1 删除确认框 ═══════════ -->
+<div class="mask hidden" id="dlg-d1">
+  <div class="modal">
+    <div class="modal-h">删除确认 <span class="dlg-tag">D1 · B17</span>
+      <button class="modal-x" onclick="closeModal('dlg-d1')">✕</button></div>
+    <div class="modal-b"><div class="modal-warn">
+      <div class="warn-ic red">!</div>
+      <div>确认删除选中的 <b id="d1-count">0</b> 条物料记录？<br>
+        <span style="color:var(--muted);font-size:11.5px">物料未被任何业务单据引用且未被授权给用户时方可删除，否则仅可停用（R-MD34）；删除为逻辑删除，保留档案供历史单据追溯。</span>
+        <div id="d1-ids" class="mono" style="margin-top:6px;color:var(--muted)"></div>
+      </div></div></div>
+    <div class="modal-f">
+      <button class="btn" onclick="closeModal('dlg-d1')">取消</button>
+      <button class="btn danger" onclick="doDelete()">确 认</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ D2 停用确认框 ═══════════ -->
+<div class="mask hidden" id="dlg-d2">
+  <div class="modal">
+    <div class="modal-h">停用确认 <span class="dlg-tag">D2 · B18</span>
+      <button class="modal-x" onclick="closeModal('dlg-d2')">✕</button></div>
+    <div class="modal-b"><div class="modal-warn">
+      <div class="warn-ic">!</div>
+      <div>确认停用选中的 <b id="d2-count">0</b> 条物料记录？<br>
+        <span style="color:var(--muted);font-size:11.5px">停用后新建单据不可选择该物料，历史单据不受影响。</span>
+        <div id="d2-ids" class="mono" style="margin-top:6px;color:var(--muted)"></div>
+      </div></div></div>
+    <div class="modal-f">
+      <button class="btn" onclick="closeModal('dlg-d2')">取消</button>
+      <button class="btn primary" onclick="doDisable()">确 认</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ D3 分仓同步确认框 ═══════════ -->
+<div class="mask hidden" id="dlg-d3">
+  <div class="modal">
+    <div class="modal-h">分仓同步确认 <span class="dlg-tag">D3 · B19</span>
+      <button class="modal-x" onclick="closeModal('dlg-d3')">✕</button></div>
+    <div class="modal-b"><div class="modal-warn">
+      <div class="warn-ic">!</div>
+      <div>确认将选中的 <b id="d3-count">0</b> 条物料记录同步至外部仓储系统分仓？<br>
+        <span style="color:var(--muted);font-size:11.5px">物料新建保存后，需执行分仓同步才在外部仓储系统分仓显示（R-MD35）。</span>
+        <div id="d3-ids" class="mono" style="margin-top:6px;color:var(--muted)"></div>
+      </div></div></div>
+    <div class="modal-f">
+      <button class="btn" onclick="closeModal('dlg-d3')">取消</button>
+      <button class="btn primary" onclick="doSync()">确 认</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ D4 导入弹窗 ═══════════ -->
+<div class="mask hidden" id="dlg-d4">
+  <div class="modal">
+    <div class="modal-h">导入物料 <span class="dlg-tag">D4 · B20/B21</span>
+      <button class="modal-x" onclick="closeModal('dlg-d4')">✕</button></div>
+    <div class="modal-b">
+      <div class="fitem"><div class="flabel" style="width:80px">导入模式</div>
+        <div class="fctrl">
+          <label class="radio"><input type="radio" name="d4-mode" value="新增" checked>新增</label>
+          <label class="radio"><input type="radio" name="d4-mode" value="更新">更新</label>
+          <div class="hint" style="line-height:32px">新增模式要求物料编码唯一；更新模式按物料编码匹配覆盖</div></div></div>
+      <div class="fitem" style="margin-top:12px"><div class="flabel" style="width:80px">模板文件</div>
+        <div class="fctrl"><button class="btn sm" onclick="toast('物料导入模板下载中…','info')">⬇ 下载模板</button></div></div>
+      <div class="fitem" style="margin-top:12px"><div class="flabel" style="width:80px">选择文件</div>
+        <div class="fctrl"><input type="file" id="d4-file" class="txt" style="padding:5px 8px" accept=".xlsx,.xls"></div></div>
+      <div id="d4-result" class="result-box hidden">
+        导入完成：成功 <b style="color:var(--brand)">8</b> 行，失败 <b style="color:var(--red)">2</b> 行。
+        <a href="javascript:;" onclick="toast('错误明细文件下载中…','info')">下载错误明细</a>
+        <div class="hint">物料编码/物料名称/物料组必输且编码唯一；规格取值按 R-MD28 校验；校验失败行不入库，错误文件注明原因，修改后可重新导入</div>
+      </div>
+    </div>
+    <div class="modal-f">
+      <button class="btn" onclick="closeModal('dlg-d4')">取消</button>
+      <button class="btn primary" onclick="doImport()">上传附件</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ D5 导出弹窗 ═══════════ -->
+<div class="mask hidden" id="dlg-d5">
+  <div class="modal">
+    <div class="modal-h">导出物料 <span class="dlg-tag">D5 · B22</span>
+      <button class="modal-x" onclick="closeModal('dlg-d5')">✕</button></div>
+    <div class="modal-b">
+      <div class="fitem"><div class="flabel" style="width:80px">导出范围</div>
+        <div class="fctrl">
+          <label class="radio"><input type="radio" name="d5-scope" value="sel" checked>当前勾选的 <b id="d5-cnt">0</b> 条记录</label><br>
+          <label class="radio"><input type="radio" name="d5-scope" value="query">按当前查询条件（共 <b id="d5-qcnt">0</b> 条）</label><br>
+          <label class="radio"><input type="radio" name="d5-scope" value="all">全部物料</label>
+        </div></div>
+    </div>
+    <div class="modal-f">
+      <button class="btn" onclick="closeModal('dlg-d5')">取消</button>
+      <button class="btn primary" onclick="doExport()">导 出</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ 离开确认（B11） ═══════════ -->
+<div class="mask hidden" id="dlg-leave">
+  <div class="modal" style="width:420px">
+    <div class="modal-h">离开确认 <span class="dlg-tag">B11</span>
+      <button class="modal-x" onclick="closeModal('dlg-leave')">✕</button></div>
+    <div class="modal-b"><div class="modal-warn">
+      <div class="warn-ic">!</div><div id="leave-msg">存在未保存的修改，确定离开？</div></div></div>
+    <div class="modal-f">
+      <button class="btn primary" onclick="closeModal('dlg-leave')">继续编辑</button>
+      <button class="btn" onclick="leaveConfirm()">确定离开</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+/* ================= 工具 ================= */
+const $ = s => document.querySelector(s);
+const $$ = s => Array.from(document.querySelectorAll(s));
+function esc(s){ return String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+function now(){ const d=new Date(), p=n=>String(n).padStart(2,'0');
+  return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`; }
+function toast(msg, type){ type = type || 'info';
+  const d = document.createElement('div'); d.className = 'toast-item toast-' + type; d.textContent = msg;
+  $('#toast').appendChild(d);
+  setTimeout(()=>{ d.style.transition='opacity .3s'; d.style.opacity='0'; setTimeout(()=>d.remove(), 300); }, 2800); }
+function openModal(id){ $('#'+id).classList.remove('hidden'); }
+function closeModal(id){ $('#'+id).classList.add('hidden'); }
+function getRadio(name){ const r = document.querySelector(`input[name="${name}"]:checked`); return r ? r.value : null; }
+function setRadio(name, v){ $$(`input[name="${name}"]`).forEach(r => r.checked = r.value === v); }
+function toggleAll(src, tbodySel){ $$(tbodySel + ' .row-check').forEach(c => c.checked = src.checked); }
+
+/* ================= 模拟数据 ================= */
+const GROUPS = ['成品','半成品','原材料','辅料','包装材料'];
+const PACKAGES = {
+  'PKG-001': { name:'标准纸箱（大）', spec:'600×400×400 mm', enabled:true },
+  'PKG-002': { name:'标准纸箱（中）', spec:'400×300×300 mm', enabled:true },
+  'PKG-003': { name:'出口木托盘',     spec:'1200×1000×150 mm', enabled:true },
+  'PKG-004': { name:'200L 镀锌铁桶',  spec:'∅585×920 mm', enabled:false },
+  'PKG-005': { name:'塑料周转筐',     spec:'600×400×280 mm', enabled:true }
+};
+const TENANTS = {
+  'T-20001': { name:'华顺协同物流（上海）有限公司', admin:'李协同', status:'启用' },
+  'T-20002': { name:'启润（香港）贸易有限公司', admin:'黄启润', status:'启用' },
+  'T-20003': { name:'鹏城国际货运（深圳）有限公司', admin:'赵鹏城', status:'停用' },
+  'T-20004': { name:'蓉城供应链协同平台', admin:'周蓉', status:'启用' }
+};
+let materials = [
+  { id:'M-30001', name:'无线蓝牙耳机 X3 Pro', desc:'标配充电盒与两副耳塞，出货前需完成 SN 激活校验。',
+    group:'成品', len:22, wid:18, hei:14, wt:0.285, pkg:'PKG-002', sn:true, danger:false,
+    enabled:true, referenced:true, updateTime:'2026-11-18 14:22:31',
+    tenants:[ { id:'T-20001', linkedAt:'2026-03-12 10:20:00' } ] },
+  { id:'M-30002', name:'智能温控柜 800L', desc:'医疗冷链场景，运输全程温控记录。',
+    group:'成品', len:110, wid:60, hei:190, wt:85, pkg:'PKG-003', sn:true, danger:false,
+    enabled:true, referenced:true, updateTime:'2026-11-16 09:05:12', tenants:[] },
+  { id:'M-30003', name:'锂电池组 48V 20Ah', desc:'Class 9 危险品，需危险品资质承运商运输。',
+    group:'半成品', len:30, wid:20, hei:15, wt:6.5, pkg:'PKG-002', sn:true, danger:true,
+    enabled:true, referenced:true, updateTime:'2026-11-10 16:44:03', tenants:[] },
+  { id:'M-30004', name:'ABS 阻燃料 25kg 装', desc:'注塑原材料，按袋收发。',
+    group:'原材料', len:60, wid:40, hei:20, wt:25, pkg:'PKG-005', sn:false, danger:false,
+    enabled:true, referenced:false, updateTime:'2026-11-19 11:30:45', tenants:[] },
+  { id:'M-30005', name:'印刷电路板 PCBA-A12', desc:'',
+    group:'半成品', len:25, wid:20, hei:8, wt:0.45, pkg:'PKG-002', sn:true, danger:false,
+    enabled:false, referenced:false, updateTime:'2026-11-12 10:18:26', tenants:[] },
+  { id:'M-30006', name:'工业乙醇（分析纯）', desc:'易燃液体，专用铁桶包装。',
+    group:'辅料', len:58.5, wid:58.5, hei:92, wt:160, pkg:'PKG-004', sn:false, danger:true,
+    enabled:true, referenced:true, updateTime:'2026-11-17 15:02:57', tenants:[] },
+  { id:'M-30007', name:'瓦楞纸箱坯料（平板）', desc:'规格未维护，仅记录净重。',
+    group:'包装材料', len:null, wid:null, hei:null, wt:1.8, pkg:'', sn:false, danger:false,
+    enabled:true, referenced:false, updateTime:'2026-11-05 13:40:19', tenants:[] },
+  { id:'M-30008', name:'产品说明书（中英文）', desc:'随机附件。',
+    group:'辅料', len:21, wid:14.5, hei:0.6, wt:0.12, pkg:'', sn:false, danger:false,
+    enabled:true, referenced:false, updateTime:'2026-11-20 09:55:33',
+    tenants:[ { id:'T-20002', linkedAt:'2026-05-08 09:12:33' },
+              { id:'T-20004', linkedAt:'2026-09-21 16:40:10' } ] }
+];
+
+/* ================= 状态 ================= */
+let sel = new Set();          // P1 勾选的物料编码
+let pending = [];             // D1/D2/D3 确认框待操作的物料编码（工具栏批量或行内单条）
+let editingId = null;         // P2 编辑模式物料编码（null=新增）
+let editingOrigPkg = '';      // 编辑模式的原包装代码（停用包装存量引用不受 R-MD29 拦截）
+let draft = null;             // P2 工作副本
+let formDirty = false;        // B11 未保存提示
+let currentDetailId = null;   // P3 当前物料
+
+/* ================= 界面切换 ================= */
+function switchScreen(k){
+  $$('.screen, section[id^="screen-"]').forEach(x => x.classList.add('hidden'));
+  $('#screen-' + k).classList.remove('hidden');
+  $$('.ptab').forEach(t => t.classList.toggle('active', t.dataset.k === k));
+}
+function toggleSec(h){ h.parentElement.classList.toggle('closed'); }
+function ensureSec(i){
+  const s = $$('#dlg-p2 .sec')[i];
+  if (!s) return;
+  s.classList.remove('closed');
+  s.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+/* ================= P1 列表 ================= */
+function getFiltered(){
+  const q = { code: $('#q-code').value.trim().toLowerCase(), name: $('#q-name').value.trim(),
+              group: $('#q-group').value, sn: $('#q-sn').value,
+              danger: $('#q-danger').value, enabled: $('#q-enabled').value };
+  return materials.filter(m =>
+    (!q.code || m.id.toLowerCase().includes(q.code)) &&
+    (!q.name || m.name.includes(q.name)) &&
+    (q.group === '全部' || m.group === q.group) &&
+    (q.sn === '全部' || (q.sn === '是') === m.sn) &&
+    (q.danger === '全部' || (q.danger === '是') === m.danger) &&
+    (q.enabled === '全部' || (q.enabled === '是') === m.enabled));
+}
+function renderList(){
+  const list = getFiltered();
+  $('#p1-count').textContent = list.length;
+  $('#p1-selcount').textContent = sel.size;
+  $('#p1-tbody').innerHTML = list.map(m => {
+    const dims = (m.len != null && m.wid != null && m.hei != null) ? `${m.len}×${m.wid}×${m.hei}` : '<span class="muted">—</span>';
+    const pkgCell = m.pkg
+      ? `<span class="mono" title="${esc((PACKAGES[m.pkg] || {}).name || '')}">${esc(m.pkg)}</span>`
+      : '<span class="muted">—</span>';
+    return `
+    <tr data-id="${esc(m.id)}" class="${sel.has(m.id) ? 'selected' : ''}">
+      <td class="c-check"><input type="checkbox" ${sel.has(m.id) ? 'checked' : ''}></td>
+      <td class="mono">${esc(m.id)}</td>
+      <td>${esc(m.name)}</td>
+      <td>${esc(m.group)}</td>
+      <td class="mono">${dims}</td>
+      <td class="mono">${m.wt != null ? m.wt : '<span class="muted">—</span>'}</td>
+      <td>${pkgCell}</td>
+      <td>${m.sn ? '<span class="status green">是</span>' : '<span class="status gray">否</span>'}</td>
+      <td>${m.danger ? '<span class="status red">是</span>' : '<span class="status gray">否</span>'}</td>
+      <td>${m.enabled ? '<span class="status green">是</span>' : '<span class="status gray">否</span>'}</td>
+      <td class="mono">${m.tenants.length}</td>
+      <td class="muted mono">${esc(m.updateTime)}</td>
+      <td class="c-act">
+        <button class="act" onclick="event.stopPropagation();rowAct('view','${esc(m.id)}')">详情</button><span class="act-sep">|</span><button class="act" onclick="event.stopPropagation();rowAct('edit','${esc(m.id)}')">编辑</button><span class="act-sep">|</span><button class="act danger" onclick="event.stopPropagation();rowAct('delete','${esc(m.id)}')">删除</button><span class="act-sep">|</span>${m.enabled
+          ? `<button class="act" onclick="event.stopPropagation();rowAct('disable','${esc(m.id)}')">停用</button>`
+          : `<button class="act" onclick="event.stopPropagation();rowAct('enable','${esc(m.id)}')">启用</button>`}
+      </td>
+    </tr>`;
+  }).join('') || `<tr><td colspan="13" class="empty">未查询到符合条件的物料记录</td></tr>`;
+  $$('#p1-tbody tr[data-id]').forEach(tr =>
+    tr.addEventListener('click', () => { const id = tr.dataset.id;
+      sel.has(id) ? sel.delete(id) : sel.add(id); renderList(); }));
+  $('#ck-all').checked = list.length > 0 && list.every(m => sel.has(m.id));
+}
+function resetQuery(){ $('#q-code').value = ''; $('#q-name').value = '';
+  $('#q-group').value = '全部'; $('#q-sn').value = '全部';
+  $('#q-danger').value = '全部'; $('#q-enabled').value = '全部'; renderList(); }
+$('#ck-all').addEventListener('change', function(){
+  const list = getFiltered();
+  if (this.checked) list.forEach(m => sel.add(m.id)); else list.forEach(m => sel.delete(m.id));
+  renderList();
+});
+
+/* ================= P1 工具栏（批量：B01/B03/B05~B09，作用于勾选记录；B02/B04 仅行内操作列） ================= */
+function tb(action){
+  const arr = [...sel].map(id => materials.find(m => m.id === id)).filter(Boolean);
+  if (action === 'add') { openForm('new'); return; }
+  if (action === 'import') { openModal('dlg-d4'); return; }
+  if (!arr.length) { toast('请先勾选物料记录', 'error'); return; }
+  const ids = arr.map(m => m.id).join('、');
+  switch (action) {
+    case 'delete':
+      pending = arr.map(m => m.id);
+      $('#d1-count').textContent = arr.length; $('#d1-ids').textContent = ids; openModal('dlg-d1'); break;
+    case 'disable': {
+      const ok = arr.filter(m => m.enabled);
+      if (!ok.length) { toast('请勾选"是否启用=是"的物料记录', 'error'); return; }
+      pending = ok.map(m => m.id);
+      $('#d2-count').textContent = ok.length; $('#d2-ids').textContent = ok.map(m => m.id).join('、');
+      openModal('dlg-d2'); break; }
+    case 'enable': {
+      const ok = arr.filter(m => !m.enabled);
+      if (!ok.length) { toast('请勾选"是否启用=否"的物料记录', 'error'); return; }
+      ok.forEach(m => m.enabled = true); renderList();
+      toast(`已启用 ${ok.length} 条物料记录`, 'success'); break; }
+    case 'sync':
+      pending = arr.map(m => m.id);
+      $('#d3-count').textContent = arr.length; $('#d3-ids').textContent = ids; openModal('dlg-d3'); break;
+    case 'export':
+      $('#d5-cnt').textContent = sel.size; $('#d5-qcnt').textContent = getFiltered().length;
+      openModal('dlg-d5'); break;
+  }
+}
+
+/* ---- P1 行内操作列：与工具栏 B02/B03/B04/B07~B09 共用逻辑，对当前行单条执行 ---- */
+function rowAct(action, id){
+  const m = materials.find(x => x.id === id); if (!m) return;
+  switch (action) {
+    case 'view': openDetail(id); break;
+    case 'edit': openForm('edit', id); break;
+    case 'delete':
+      pending = [id];
+      $('#d1-count').textContent = 1; $('#d1-ids').textContent = id; openModal('dlg-d1'); break;
+    case 'disable':
+      pending = [id];
+      $('#d2-count').textContent = 1; $('#d2-ids').textContent = id; openModal('dlg-d2'); break;
+    case 'enable':
+      m.enabled = true; renderList();
+      toast(`已启用物料 ${id}`, 'success'); break;
+  }
+}
+
+/* ================= 弹窗动作（B17~B22，按 pending 目标执行） ================= */
+function doDelete(){
+  const arr = pending.map(id => materials.find(m => m.id === id)).filter(Boolean);
+  const bad = arr.filter(m => m.referenced);
+  closeModal('dlg-d1'); pending = [];
+  if (bad.length) { toast(`物料 ${bad.map(m => m.id).join('、')} 已被业务数据引用，不可删除，请使用停用（R-MD34）`, 'error'); return; }
+  materials = materials.filter(m => !arr.some(x => x.id === m.id));
+  arr.forEach(m => sel.delete(m.id));
+  renderList();
+  toast(`已删除 ${arr.length} 条物料记录（逻辑删除，保留档案供历史单据追溯）`, 'success');
+}
+function doDisable(){
+  const arr = pending.map(id => materials.find(m => m.id === id)).filter(Boolean);
+  arr.forEach(m => m.enabled = false);
+  closeModal('dlg-d2'); pending = []; renderList();
+  toast(`已停用 ${arr.length} 条物料记录`, 'success');
+}
+function doSync(){ closeModal('dlg-d3'); toast('仓库物料信息同步成功', 'success'); }
+function doImport(){
+  if (!$('#d4-file').value) { toast('请先选择要导入的文件', 'error'); return; }
+  const mode = getRadio('d4-mode');
+  $('#d4-result').classList.remove('hidden');
+  toast(`导入完成（${mode}模式）：成功 8 行，失败 2 行`, 'warn');
+}
+function doExport(){
+  const scope = getRadio('d5-scope');
+  const label = scope === 'sel' ? '当前勾选记录' : scope === 'query' ? '当前查询条件' : '全部物料';
+  closeModal('dlg-d5');
+  toast(`已按【${label}】范围生成 Excel 文件并开始下载`, 'success');
+}
+
+/* ================= P2 表单页 ================= */
+function markDirty(){ formDirty = true; }
+function buildPkgOptions(cur){
+  let html = '<option value="">不引用包装（裸料）</option>';
+  for (const [code, p] of Object.entries(PACKAGES)) {
+    if (p.enabled || code === cur)
+      html += `<option value="${code}">${code} · ${p.name}${p.enabled ? '' : '（已停用）'}</option>`;
+  }
+  $('#f-pkg').innerHTML = html;
+  $('#f-pkg').value = cur || '';
+}
+function setPkgInfo(){
+  const v = $('#f-pkg').value, el = $('#f-pkg-info');
+  if (!v) { el.textContent = '取自包装主数据（另册定义）；选择后带出包装名称与规格（R-MD29）'; return; }
+  const p = PACKAGES[v];
+  if (!p) { el.textContent = '未匹配到包装主数据'; return; }
+  el.innerHTML = `${esc(p.name)} · ${esc(p.spec)} · ` + (p.enabled
+    ? '<span style="color:var(--brand)">启用</span>'
+    : '<span style="color:var(--red)">已停用（存量引用不受影响，不可新选择）</span>');
+}
+function onPkg(){ setPkgInfo(); markDirty(); }
+function volOf(l, w, h){
+  if (l == null || w == null || h == null) return '—';
+  const v = l * w * h / 1e6;
+  return v >= 0.001 ? v.toFixed(3) + ' m³' : '&lt;0.001 m³';
+}
+function volText(m){ return volOf(m.len, m.wid, m.hei); }
+function updateVol(){
+  const vals = ['f-len', 'f-wid', 'f-hei'].map(i => $('#'+i).value.trim());
+  if (vals.some(v => v === '')) { $('#f-vol').value = '—'; markDirty(); return; }
+  const nums = vals.map(Number);
+  if (nums.some(n => !isFinite(n) || n <= 0)) { $('#f-vol').value = '—'; markDirty(); return; }
+  $('#f-vol').value = nums[0] * nums[1] * nums[2] / 1e6 >= 0.001
+    ? (nums[0] * nums[1] * nums[2] / 1e6).toFixed(3) + ' m³' : '<0.001 m³';
+  markDirty();
+}
+function syncDangerWarn(){ $('#danger-warn').classList.toggle('hidden', getRadio('f-danger') !== '是'); }
+function onDanger(){ syncDangerWarn(); markDirty(); }
+function dimRule(label, el){
+  const v = el.value.trim();
+  if (v === '') return { ok: true, v: null };
+  if (!/^\d+(\.\d{1,3})?$/.test(v) || Number(v) <= 0) return { ok: false };
+  return { ok: true, v: Number(v) };
+}
+function openForm(mode, id){
+  editingId = mode === 'edit' ? id : null;
+  const src = mode === 'edit' ? materials.find(m => m.id === id) : null;
+  editingOrigPkg = src ? (src.pkg || '') : '';
+  draft = src ? JSON.parse(JSON.stringify(src))
+              : { id:'', name:'', desc:'', group:'', len:null, wid:null, hei:null, wt:null,
+                  pkg:'', sn:false, danger:false, enabled:true, tenants:[] };
+  $('#p2-title').textContent = mode === 'edit' ? `编辑物料 · ${draft.id}` : '新增物料';
+  $('#p2-tag').textContent = mode === 'edit' ? 'P2 编辑模式' : 'P2 新增模式';
+  $('#f-id').disabled = mode === 'edit';
+  fillForm(); renderTenants();
+  $$('#dlg-p2 .sec').forEach(s => s.classList.remove('closed'));
+  const mb = $('#dlg-p2 .modal-b'); if (mb) mb.scrollTop = 0;
+  formDirty = false; openModal('dlg-p2');
+}
+function fillForm(){
+  $('#f-id').value = draft.id; $('#f-name').value = draft.name;
+  $('#f-desc').value = draft.desc || ''; $('#f-group').value = draft.group || '';
+  $('#f-len').value = draft.len ?? ''; $('#f-wid').value = draft.wid ?? '';
+  $('#f-hei').value = draft.hei ?? ''; $('#f-wt').value = draft.wt ?? '';
+  buildPkgOptions(draft.pkg); setPkgInfo();
+  $('#f-vol').value = draft.len != null && draft.wid != null && draft.hei != null
+    ? (draft.len * draft.wid * draft.hei / 1e6 >= 0.001
+        ? (draft.len * draft.wid * draft.hei / 1e6).toFixed(3) + ' m³' : '<0.001 m³')
+    : '—';
+  setRadio('f-enabled', draft.enabled ? '是' : '否');
+  setRadio('f-sn', draft.sn ? '是' : '否');
+  setRadio('f-danger', draft.danger ? '是' : '否');
+  syncDangerWarn();
+}
+function saveForm(){
+  const id = $('#f-id').value.trim(), name = $('#f-name').value.trim(), group = $('#f-group').value;
+  if (!id) { ensureSec(0); $('#f-id').focus(); toast('请填写物料编码', 'error'); return; }
+  if (!/^[A-Za-z0-9_-]+$/.test(id)) { ensureSec(0); toast('物料编码仅允许字母、数字、-、_', 'error'); return; }
+  if (!editingId && materials.some(m => m.id === id)) { ensureSec(0); toast('物料编码已存在（R-MD27）', 'error'); return; }
+  if (!name) { ensureSec(0); $('#f-name').focus(); toast('请填写物料名称', 'error'); return; }
+  if (!group) { ensureSec(0); toast('请选择物料组', 'error'); return; }
+  const specs = [['物料长', $('#f-len')], ['物料宽', $('#f-wid')], ['物料高', $('#f-hei')], ['净重', $('#f-wt')]]
+    .map(([label, el]) => [label, dimRule(label, el)]);
+  for (const [label, r] of specs) {
+    if (!r.ok) { ensureSec(1); toast(`${label}必须大于 0 且最多 3 位小数（R-MD28）`, 'error'); return; }
+  }
+  const pkg = $('#f-pkg').value;
+  if (pkg && PACKAGES[pkg] && !PACKAGES[pkg].enabled && pkg !== editingOrigPkg) {
+    ensureSec(1); toast('包装未启用，不可选择（R-MD29）', 'error'); return;
+  }
+  const tids = draft.tenants.map(t => (t.id || '').trim());
+  if (tids.some(v => !v)) { ensureSec(3); toast('租户ID不能为空，请填写或删除该行', 'error'); return; }
+  const unknown = tids.filter(v => !TENANTS[v] || TENANTS[v].status !== '启用');
+  if (unknown.length) { ensureSec(3); toast(`租户 ${unknown.join('、')} 不存在或未启用，不可关联（R-MD33）`, 'error'); return; }
+  if (new Set(tids).size !== tids.length) { ensureSec(3); toast('同一租户不可重复关联（R-MD33）', 'error'); return; }
+  draft.id = id; draft.name = name; draft.group = group;
+  draft.desc = $('#f-desc').value.trim();
+  [draft.len, draft.wid, draft.hei, draft.wt] = specs.map(([, r]) => r.v);
+  draft.pkg = pkg;
+  draft.sn = getRadio('f-sn') === '是';
+  draft.danger = getRadio('f-danger') === '是';
+  draft.enabled = getRadio('f-enabled') === '是';
+  draft.tenants.forEach((t, i) => { t.id = tids[i]; if (!t.linkedAt) t.linkedAt = now(); });
+  draft.updateTime = now();
+  if (editingId) { const i = materials.findIndex(m => m.id === editingId); draft.referenced = materials[i].referenced; materials[i] = draft; }
+  else { draft.referenced = false; materials.push(draft); }
+  closeModal('dlg-p2'); sel.clear(); renderList(); editingId = null; formDirty = false;
+  if (!$('#screen-p3').classList.contains('hidden') && currentDetailId) openDetail(currentDetailId);
+  toast('保存成功', 'success');
+  if (draft.danger) toast('危险品物料，请注意承运资质与运输管控（R-MD31）', 'warn');
+}
+function cancelForm(){
+  if (formDirty) openModal('dlg-leave');
+  else { editingId = null; closeModal('dlg-p2'); }
+}
+function leaveConfirm(){ closeModal('dlg-leave'); closeModal('dlg-p2'); editingId = null; formDirty = false; }
+
+/* ---- P2 分区4：授权租户（B12/B13/B14，R-MD33） ---- */
+function renderTenants(){
+  const cnt = $('#sec-tenant-cnt');
+  if (cnt) cnt.textContent = draft.tenants.length + ' 个';
+  $('#tenant-tbody').innerHTML = draft.tenants.map((t, i) => {
+    const info = TENANTS[t.id];
+    return `<tr>
+      <td class="c-check"><input type="checkbox" class="row-check"></td>
+      <td class="mono">${i + 1}</td>
+      <td><input class="txt mono" value="${esc(t.id)}" maxlength="30" placeholder="如 T-20001" onchange="onTenantId(${i}, this.value)"></td>
+      <td>${info ? esc(info.name) : '<span class="muted">未匹配</span>'}</td>
+      <td>${info ? (info.status === '启用' ? '<span class="status green">启用</span>' : '<span class="status gray">停用</span>') : '—'}</td>
+      <td class="muted mono">${t.linkedAt ? esc(t.linkedAt) : '待关联'}</td>
+    </tr>`;
+  }).join('') || `<tr><td colspan="6" class="empty">暂无授权租户，点击【新增行】填写租户ID后点击【关联】</td></tr>`;
+}
+function onTenantId(i, v){
+  draft.tenants[i].id = v.trim();
+  draft.tenants[i].linkedAt = '';
+  formDirty = true; renderTenants();
+}
+function tenantAdd(){ draft.tenants.push({ id:'', linkedAt:'' }); formDirty = true; renderTenants(); }
+function tenantDel(){
+  const idx = $$('#tenant-tbody .row-check').map((c, i) => c.checked ? i : -1).filter(i => i >= 0);
+  if (!idx.length) { toast('请先勾选要删除的授权租户行', 'error'); return; }
+  idx.sort((a, b) => b - a).forEach(i => draft.tenants.splice(i, 1));
+  formDirty = true; renderTenants();
+}
+function linkTenants(){
+  if (!draft.tenants.length) { toast('请先【新增行】填写租户ID', 'error'); return; }
+  const ids = draft.tenants.map(t => (t.id || '').trim());
+  if (ids.some(v => !v)) { toast('请填写完整的租户ID后再关联', 'error'); return; }
+  const unknown = ids.filter(v => !TENANTS[v]);
+  if (unknown.length) { toast(`租户 ${unknown.join('、')} 不存在，请检查租户ID`, 'error'); return; }
+  const disabled = ids.filter(v => TENANTS[v].status !== '启用');
+  if (disabled.length) { toast(`租户 ${disabled.join('、')} 未启用，不可关联`, 'error'); return; }
+  if (new Set(ids).size !== ids.length) { toast('同一租户不可重复关联（R-MD33）', 'error'); return; }
+  draft.tenants.forEach((t, i) => { t.id = ids[i]; if (!t.linkedAt) t.linkedAt = now(); });
+  formDirty = true; renderTenants();
+  toast(`关联成功，已建立 ${draft.tenants.length} 个租户的委托运输协同`, 'success');
+}
+
+/* ================= P3 物料详情（B15/B16） ================= */
+function openDetail(id){
+  currentDetailId = id;
+  const m = materials.find(x => x.id === id); if (!m) return;
+  $('#p3-title').textContent = `物料详情 · ${m.id} ${m.name}`;
+  $('#p3-tags').innerHTML =
+    (m.enabled ? '<span class="status green">启用</span>' : '<span class="status gray">停用</span>') +
+    (m.danger ? ' <span class="status red">危险品</span>' : '') +
+    (m.referenced ? ' <span class="status yellow">已被业务单据引用</span>' : '');
+  $('#p3-base').innerHTML = [
+    ['物料编码', `<span class="mono">${esc(m.id)}</span>`], ['物料名称', esc(m.name)],
+    ['物料组', esc(m.group)], ['是否启用', m.enabled ? '是' : '否'],
+    ['物料描述', m.desc ? esc(m.desc) : '—'], ['最后更新时间', `<span class="mono">${esc(m.updateTime)}</span>`]
+  ].map(([k, v]) => `<div class="detail-field"><span>${k}</span><strong>${v}</strong></div>`).join('');
+  const p = m.pkg ? PACKAGES[m.pkg] : null;
+  $('#p3-spec').innerHTML = [
+    ['物料长（cm）', m.len != null ? m.len : '—'], ['物料宽（cm）', m.wid != null ? m.wid : '—'],
+    ['物料高（cm）', m.hei != null ? m.hei : '—'], ['净重（kg）', m.wt != null ? m.wt : '—'],
+    ['单件体积（m³）', volText(m)],
+    ['包装代码', p ? `<span class="mono">${esc(m.pkg)}</span>` : '—'],
+    ['包装名称', p ? esc(p.name) : '—'], ['包装规格', p ? esc(p.spec) : '—']
+  ].map(([k, v]) => `<div class="detail-field"><span>${k}</span><strong>${v}</strong></div>`).join('');
+  $('#p3-ctrl').innerHTML = [
+    ['是否SN管理', m.sn ? '<span class="status green">是</span>' : '<span class="status gray">否</span>'],
+    ['是否危险品', m.danger ? '<span class="status red">是</span>' : '<span class="status gray">否</span>'],
+    ['SN 管理说明', m.sn ? '出入库订单、发货订单与运单货物行需录入/回传序列号，按 SN 明细收发货核对（R-MD30）' : '单据不出现 SN 录入项'],
+    ['危险品管控说明', m.danger ? '单据、配载与运单全程展示危险品标识；配载指派承运商时校验危险品运输资质（R-MD31）' : '—']
+  ].map(([k, v]) => `<div class="detail-field"><span>${k}</span><strong>${v}</strong></div>`).join('');
+  $('#p3-tenant').innerHTML = `<thead><tr><th>租户ID</th><th>租户名称</th><th style="width:100px">租户状态</th><th style="width:170px">关联时间</th><th style="width:160px">协同能力</th></tr></thead><tbody>` +
+    (m.tenants.map(t => {
+      const info = TENANTS[t.id];
+      return `<tr><td class="mono">${esc(t.id)}</td><td>${info ? esc(info.name) : '—'}</td>
+        <td>${info ? (info.status === '启用' ? '<span class="status green">启用</span>' : '<span class="status gray">停用</span>') : '—'}</td>
+        <td class="muted mono">${t.linkedAt ? esc(t.linkedAt) : '—'}</td><td class="muted">委托第三方物流运输</td></tr>`;
+    }).join('') || `<tr><td colspan="5" class="empty">未关联授权租户</td></tr>`) + `</tbody>`;
+  switchScreen('p3');
+}
+function p3Edit(){ if (currentDetailId) openForm('edit', currentDetailId); }
+
+/* ================= 顶部页签切换 ================= */
+$$('.ptab').forEach(t => t.addEventListener('click', () => {
+  const k = t.dataset.k;
+  if (k === 'p2') { openForm(editingId ? 'edit' : 'new', editingId || undefined); return; }
+  if (k === 'p3') { openDetail(currentDetailId || materials[0].id); return; }
+  switchScreen(k);
+}));
+
+/* ================= 弹窗遮罩点击关闭 ================= */
+$$('.mask').forEach(m => m.addEventListener('click', e => {
+  if (e.target !== m) return;
+  if (m.id === 'dlg-p2') { cancelForm(); return; }
+  m.classList.add('hidden');
+}));
+
+/* ================= 初始化 ================= */
+renderList();
+</script>
+</body>
+</html>

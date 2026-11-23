@@ -1,0 +1,1113 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PRD-MD-006 车辆主数据 · 高保真交互原型</title>
+<style>
+  /* ============================================================
+     设计令牌 — 对齐 lcdesign-web（LC Design）视觉基线
+     主色 #009100 · 正文 14px · 表头 #F8F7F7 · 圆角 4/8px
+     ============================================================ */
+  :root {
+    --bg: #F8F8F8; --panel: #FFFFFF; --sidebar-bg: #FFFFFF;
+    --ink: #0A0E0A; --sub: #3B3E3B; --muted: #9D9F9D;
+    --line: #E6E6E5; --line-soft: #F8F7F7;
+    --brand: #009100; --brand-hover: #00A800; --brand-dark: #007400;
+    --brand-weak: #E9FAEB; --brand-edge: #B7E0B9;
+    --red: #B91919; --red-weak: #F8E8E8;
+    --yellow: #C8A12B; --yellow-weak: #FAF6EA;
+    --blue: #2261DD; --blue-weak: #E9EEF9;
+    --shadow: 0 4px 10px rgba(10, 14, 10, .12);
+    --shadow-lg: 0 10px 24px rgba(10, 14, 10, .15);
+    --radius: 8px; --radius-sm: 4px; --radius-pill: 999px;
+    --t-fast: .15s ease;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { color: var(--sub); background: var(--bg); line-height: 1.5;
+         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", "PingFang SC", "Noto Sans SC", sans-serif;
+         font-size: 14px; }
+  button, select, textarea, input { font: inherit; }
+  button { cursor: pointer; }
+  .hidden { display: none !important; }
+  .mono { font-family: "SF Mono", Consolas, monospace; font-size: 13px; }
+  .muted { color: var(--muted); }
+
+  /* ===== 原型导航条 ===== */
+  .proto-bar { position: sticky; top: 0; z-index: 95; display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+               min-height: 64px; padding: 10px 16px; background: #fff; border-bottom: 1px solid var(--line); }
+  .proto-bar .pb-t { font-size: 16px; font-weight: 600; color: var(--ink); }
+  .proto-bar .pb-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .ptabs { display: flex; gap: 4px; margin-left: auto; flex-wrap: wrap; }
+  .ptab { height: 32px; padding: 0 12px; border: 0; border-radius: var(--radius-sm); background: transparent;
+          color: var(--sub); font-size: 14px; transition: all var(--t-fast); }
+  .ptab:hover { background: var(--line-soft); color: var(--brand); }
+  .ptab.active { background: var(--brand-weak); color: var(--brand); font-weight: 600; }
+
+  /* ===== 平台框架 ===== */
+  .app { display: flex; min-height: calc(100vh - 64px); }
+  .sidebar { width: 200px; flex-shrink: 0; background: var(--sidebar-bg); border-right: 1px solid var(--line);
+             padding: 12px 8px; position: sticky; top: 64px; height: calc(100vh - 64px); overflow-y: auto; }
+  .sb-brand { display: flex; gap: 8px; align-items: center; height: 40px; padding: 0 8px 8px; }
+  .sb-mark { width: 28px; height: 28px; border-radius: var(--radius-sm); display: grid; place-items: center;
+             color: #fff; font-weight: 600; font-size: 12px; background: var(--brand); }
+  .sb-brand strong { font-size: 14px; font-weight: 600; color: var(--ink); }
+  .sb-group { color: var(--muted); font-size: 12px; padding: 12px 8px 4px; }
+  .sb-item { display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 12px;
+             border-radius: var(--radius-sm); font-size: 14px; color: var(--sub); transition: all var(--t-fast); }
+  .sb-item:hover { background: var(--line-soft); color: var(--brand); }
+  .sb-item.active { background: var(--brand-weak); color: var(--brand); font-weight: 500; }
+  .main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .topbar { min-height: 56px; background: #fff; border-bottom: 1px solid var(--line);
+            display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 0 16px;
+            position: sticky; top: 64px; z-index: 90; }
+  .page-head { display: flex; align-items: baseline; gap: 16px; min-width: 0; flex-wrap: wrap; }
+  .page-title { font-size: 16px; font-weight: 500; color: var(--ink); }
+  .page-sub { font-size: 14px; color: var(--sub); }
+  .user-chip { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--sub); }
+  .user-chip .ava { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center;
+                    color: #fff; font-size: 12px; font-weight: 600; background: var(--brand); }
+  .content { flex: 1; padding: 16px 16px 24px; min-width: 0; }
+
+  /* ===== 卡片 ===== */
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); margin-bottom: 16px; overflow: hidden; }
+  .card-h { min-height: 48px; padding: 0 16px; border-bottom: 1px solid var(--line-soft); font-weight: 600; font-size: 14px;
+            color: var(--ink); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .card-b { padding: 16px; }
+
+  /* ===== 按钮 ===== */
+  .btn { height: 32px; padding: 0 16px; border: 1px solid var(--line); border-radius: var(--radius-sm);
+         color: var(--sub); background: #fff; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+         font-size: 14px; line-height: 1; transition: all var(--t-fast); }
+  .btn:hover { border-color: var(--brand); color: var(--brand); }
+  .btn:focus-visible { outline: 2px solid var(--brand-weak); outline-offset: 1px; }
+  .btn.primary { color: #fff; border-color: var(--brand); background: var(--brand); }
+  .btn.primary:hover { background: var(--brand-hover); border-color: var(--brand-hover); color: #fff; }
+  .btn.danger { color: #fff; border-color: var(--red); background: var(--red); }
+  .btn.danger:hover { opacity: .9; color: #fff; }
+  .btn.sm { height: 28px; padding: 0 10px; font-size: 13px; }
+
+  /* ===== 表格 ===== */
+  table { width: 100%; border-collapse: collapse; font-size: 14px; color: var(--sub); }
+  th, td { padding: 12px; border-bottom: 1px solid var(--line-soft); text-align: left; vertical-align: middle; }
+  th { color: var(--sub); background: var(--line-soft); font-weight: 600; white-space: nowrap; border-bottom: 1px solid var(--line); }
+  tbody tr { transition: background var(--t-fast); }
+  tbody tr:hover { background: var(--line-soft); }
+  table.stripe tbody tr:nth-child(even),
+  #p3-drv tbody tr:nth-child(even) { background: #FCFBFB; }
+  tbody tr.selected, tbody tr.selected:hover { background: var(--brand-weak); }
+  .c-check { text-align: center; width: 40px; }
+
+  /* ===== 行内操作列 ===== */
+  .c-act { white-space: nowrap; }
+  .act { border: 0; background: none; padding: 0; height: auto; font-size: 13px; line-height: 20px;
+         color: var(--brand); text-decoration: none; transition: color var(--t-fast); }
+  .act:hover { color: var(--brand-hover); text-decoration: underline; }
+  .act:focus-visible { outline: 2px solid var(--brand-weak); outline-offset: 2px; border-radius: 2px; }
+  .act.danger { color: var(--red); }
+  .act.danger:hover { color: #D32020; text-decoration: underline; }
+  .act-sep { color: var(--line); margin: 0 6px; font-size: 12px; }
+  td.empty { text-align: center; color: var(--muted); padding: 32px 12px; }
+
+  /* ===== 标签 ===== */
+  .status { display: inline-flex; align-items: center; gap: 4px; height: 22px; border-radius: var(--radius-sm);
+            padding: 0 10px; border: 1px solid transparent; font-size: 12px; font-weight: 500; white-space: nowrap; }
+  .status.green { color: var(--brand); background: var(--brand-weak); border-color: var(--brand-edge); }
+  .status.gray { color: var(--sub); background: var(--line-soft); border-color: var(--line); }
+  .status.blue { color: var(--blue); background: var(--blue-weak); border-color: #D6E0F5; }
+  .status.yellow { color: #8C6D12; background: var(--yellow-weak); border-color: #EFE3BF; }
+  .status.red { color: var(--red); background: var(--red-weak); border-color: #F0D0D0; }
+
+  /* ===== 查询区 ===== */
+  .qgrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px 24px; }
+  .qitem { display: flex; align-items: center; gap: 8px; }
+  .qlabel { width: 96px; text-align: right; font-size: 14px; color: var(--sub); flex-shrink: 0; }
+  .qact { display: flex; gap: 8px; align-items: center; justify-content: flex-start; }
+  .qrange { display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0; }
+  .qrange .txt { min-width: 0; }
+
+  /* ===== 输入控件 ===== */
+  .txt, .sel { width: 100%; height: 32px; padding: 0 12px; border: 1px solid var(--line);
+               border-radius: var(--radius-sm); font-size: 14px; color: var(--sub); background: #fff; outline: none;
+               transition: border-color var(--t-fast); }
+  .txt::placeholder, .ta::placeholder { color: var(--muted); }
+  .txt:focus, .sel:focus, .ta:focus { border-color: var(--brand); }
+  .txt:disabled { background: var(--bg); color: var(--muted); cursor: not-allowed; }
+  .txt[readonly] { background: var(--line-soft); }
+  .ta { width: 100%; min-height: 72px; padding: 8px 12px; border: 1px solid var(--line); border-radius: var(--radius-sm);
+        font-size: 14px; color: var(--sub); background: #fff; outline: none; resize: vertical; transition: border-color var(--t-fast); }
+  input[type="checkbox"], input[type="radio"] { accent-color: var(--brand); margin: 0; }
+  .switch { position: relative; display: inline-flex; width: 40px; height: 20px; cursor: pointer; vertical-align: middle; }
+  .switch input { position: absolute; opacity: 0; width: 0; height: 0; }
+  .switch__core { position: relative; width: 40px; height: 20px; border-radius: 10px; background: var(--line);
+                  transition: background var(--t-fast); }
+  .switch__core::after { content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px;
+                         border-radius: 50%; background: #fff; transition: transform var(--t-fast); }
+  .switch input:checked + .switch__core { background: var(--brand); }
+  .switch input:checked + .switch__core::after { transform: translateX(20px); }
+
+  /* ===== 工具栏 / 分页 ===== */
+  .toolbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--line-soft); }
+  .toolbar .sep { width: 1px; height: 16px; background: var(--line); margin: 0 4px; }
+  .pager { display: flex; justify-content: flex-end; align-items: center; gap: 8px; padding: 12px 16px;
+           color: var(--sub); font-size: 14px; flex-wrap: wrap; }
+  .pager b { color: var(--ink); font-weight: 600; }
+  .pg-btn { min-width: 24px; height: 24px; padding: 0 6px; border: 1px solid var(--line); background: #fff; border-radius: var(--radius-sm);
+            font-size: 13px; color: var(--sub); }
+  .pg-btn:hover { border-color: var(--brand); color: var(--brand); }
+  .pg-btn.active { border-color: var(--brand); color: var(--brand); font-weight: 600; }
+  .pg-sel { height: 28px; width: auto; padding: 0 8px; font-size: 13px; }
+  .pg-jump { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); }
+  .pg-input { width: 44px; height: 28px; padding: 0 8px; border: 1px solid var(--line); border-radius: var(--radius-sm);
+              text-align: center; color: var(--sub); background: #fff; outline: none; }
+  .pg-input:focus { border-color: var(--brand); }
+
+  /* ===== P2 表单弹窗 ===== */
+  .modal.lg { width: 900px; max-width: 96vw; max-height: 86vh; display: flex; flex-direction: column; }
+  .modal.lg .modal-b { flex: 1; overflow-y: auto; padding: 16px; }
+  .sec { border: 1px solid var(--line); border-radius: var(--radius); margin-bottom: 12px; background: #fff; overflow: hidden; }
+  .sec-h { display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 16px; background: var(--line-soft);
+           font-weight: 600; font-size: 14px; color: var(--ink); cursor: pointer; user-select: none; transition: background var(--t-fast); }
+  .sec-h:hover { background: var(--brand-weak); }
+  .sec-h .arrow { font-size: 10px; color: var(--brand); transition: transform var(--t-fast); display: inline-block; }
+  .sec.closed .arrow { transform: rotate(-90deg); }
+  .sec-h .cnt { margin-left: auto; font-size: 12px; color: var(--muted); font-weight: 400; }
+  .sec-b { padding: 16px; border-top: 1px solid var(--line-soft); }
+  .sec.closed .sec-b { display: none; }
+  .fgrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 24px; }
+  .fitem { display: flex; align-items: flex-start; }
+  .flabel { width: 112px; text-align: right; padding-right: 12px; color: var(--sub); font-size: 14px;
+            flex-shrink: 0; line-height: 32px; }
+  .flabel .req { color: var(--red); margin-right: 4px; }
+  .fctrl { flex: 1; min-width: 0; }
+  .span2 { grid-column: 1 / -1; }
+  .hint { font-size: 12px; color: var(--muted); margin-top: 4px; line-height: 1.5; }
+  .radio { display: inline-flex; align-items: center; gap: 6px; margin-right: 16px; line-height: 32px; cursor: pointer; font-size: 14px; color: var(--sub); }
+  .form-f { min-height: 56px; padding: 0 16px; border-top: 1px solid var(--line); display: flex; align-items: center;
+            justify-content: flex-end; gap: 8px; background: #fff; }
+  .sub-tb-bar { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; flex-wrap: wrap; }
+  .sub-tb-bar .hint { margin: 0 0 0 auto; }
+
+  /* ===== P3 详情页 ===== */
+  .dcard { border: 1px solid var(--line); border-radius: var(--radius); margin-bottom: 16px; overflow: hidden; }
+  .dcard-t { min-height: 44px; padding: 0 16px; background: var(--line-soft); border-bottom: 1px solid var(--line-soft);
+             font-weight: 600; font-size: 14px; color: var(--ink); display: flex; gap: 8px; align-items: center; }
+  .dcard-b { padding: 16px; }
+  .detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .detail-field { padding: 12px; border: 1px solid var(--line-soft); border-radius: var(--radius-sm); background: #FCFBFB; }
+  .detail-field span { display: block; color: var(--muted); font-size: 12px; }
+  .detail-field strong { display: block; margin-top: 4px; font-size: 14px; font-weight: 500; color: var(--ink); word-break: break-all; }
+
+  /* ===== 弹窗 ===== */
+  .mask { position: fixed; inset: 0; background: rgba(10, 14, 10, .4); display: flex; align-items: flex-start;
+          justify-content: center; padding-top: 10vh; z-index: 100; }
+  .modal { width: 500px; max-width: 92vw; background: #fff; border-radius: var(--radius); box-shadow: var(--shadow-lg);
+           animation: pop .18s ease; }
+  @keyframes pop { from { transform: scale(.96); opacity: 0; } }
+  .modal-h { min-height: 52px; padding: 0 20px; font-weight: 600; font-size: 16px; color: var(--ink);
+             border-bottom: 1px solid var(--line-soft); display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+  .dlg-tag { font-size: 12px; font-weight: 500; font-family: "SF Mono", Consolas, monospace;
+             background: var(--brand-weak); color: var(--brand); border-radius: var(--radius-sm); padding: 2px 8px; }
+  .modal-x { border: 0; background: none; color: var(--muted); font-size: 16px; line-height: 1; }
+  .modal-x:hover { color: var(--ink); }
+  .modal-b { padding: 20px; font-size: 14px; color: var(--sub); line-height: 1.6; }
+  .modal-f { min-height: 56px; padding: 0 20px; border-top: 1px solid var(--line-soft); display: flex;
+             align-items: center; justify-content: flex-end; gap: 8px; }
+  .modal-warn { display: flex; gap: 12px; align-items: flex-start; }
+  .warn-ic { width: 26px; height: 26px; border-radius: 50%; background: var(--yellow-weak); color: var(--yellow);
+             font-weight: 600; display: grid; place-items: center; flex-shrink: 0; font-size: 14px; }
+  .warn-ic.red { background: var(--red-weak); color: var(--red); }
+  .result-box { margin-top: 12px; background: var(--yellow-weak); border: 1px solid #EFE3BF; border-radius: var(--radius-sm); padding: 12px; }
+  .result-box a { color: var(--blue); }
+
+  /* ===== Toast ===== */
+  #toast { position: fixed; left: 50%; top: 80px; transform: translateX(-50%); z-index: 300;
+           display: flex; flex-direction: column; gap: 8px; align-items: center; }
+  .toast-item { padding: 10px 16px; border-radius: var(--radius-sm); color: #fff; font-size: 14px;
+                box-shadow: var(--shadow); animation: tin .2s ease; max-width: 80vw; }
+  @keyframes tin { from { opacity: 0; transform: translateY(-8px); } }
+  .toast-info { background: var(--sub); }
+  .toast-success { background: var(--brand); }
+  .toast-error { background: var(--red); }
+  .toast-warn { background: var(--yellow); }
+
+  /* ===== P9 关系图 ===== */
+  .p9-svg { width: 100%; height: auto; display: block; min-width: 900px; }
+  .p9-wrap { overflow-x: auto; }
+  .note-strip { border: 1px solid var(--brand-edge); background: #F6FBF6; border-radius: var(--radius);
+                padding: 12px 16px; font-size: 14px; color: var(--sub); line-height: 1.6; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════ 原型导航条 ═══════════ -->
+<div class="proto-bar">
+  <div>
+    <div class="pb-t">PRD-MD-006 车辆主数据 · 高保真交互原型</div>
+    <div class="pb-sub">基础资料 MDM · 贸易伙伴-车辆 · V1.0（草稿） · 依据 3.1 原型规划实现 P1/P2/P3/P9 + D1~D4，按钮 B01~B20（P1 含行内操作列）与业务规则 R-MD48~R-MD56 以模拟数据实现，可点击体验</div>
+  </div>
+  <div class="ptabs">
+    <button class="ptab active" data-k="p1">P1 车辆列表</button>
+    <button class="ptab" data-k="p2">P2 表单弹窗</button>
+    <button class="ptab" data-k="p3">P3 车辆详情</button>
+    <button class="ptab" data-k="p9">P9 按钮关系总览</button>
+  </div>
+</div>
+
+<div class="app">
+  <!-- ═══════════ 左侧菜单 ═══════════ -->
+  <aside class="sidebar">
+    <div class="sb-brand"><div class="sb-mark">OT</div><strong>OTWB 平台</strong></div>
+    <div class="sb-group">基础资料</div>
+    <div class="sb-item">客户</div>
+    <div class="sb-item">承运商</div>
+    <div class="sb-item">供应商</div>
+    <div class="sb-item">司机</div>
+    <div class="sb-item active">车辆</div>
+    <div class="sb-item">物料</div>
+    <div class="sb-item">地址</div>
+    <div class="sb-group">订单管理 OMS</div>
+    <div class="sb-item">销售订单</div>
+    <div class="sb-item">发货订单</div>
+    <div class="sb-group">运输管理 TMS</div>
+    <div class="sb-item">运单</div>
+    <div class="sb-item">配载计划</div>
+    <div class="sb-group">结算管理 BMS</div>
+    <div class="sb-item">应收凭证</div>
+    <div class="sb-item">对账单</div>
+    <div class="sb-group">系统管理</div>
+    <div class="sb-item">用户与角色</div>
+  </aside>
+
+  <!-- ═══════════ 主区域 ═══════════ -->
+  <main class="main">
+    <div class="topbar">
+      <div class="page-head">
+        <span class="page-title">车辆主数据</span>
+        <span class="page-sub">基础资料 / 贸易伙伴 / 车辆 · 维护车辆档案、所属承运商与司机列表</span>
+      </div>
+      <div class="user-chip"><div class="ava">张</div>主数据管理员 · 张三</div>
+    </div>
+
+    <div class="content">
+
+      <!-- ═══════════ P1 车辆列表 ═══════════ -->
+      <section id="screen-p1">
+        <div class="card">
+          <div class="card-b">
+            <div class="qgrid">
+              <div class="qitem"><div class="qlabel">车辆编码</div><input class="txt" id="q-code" placeholder="支持模糊匹配"></div>
+              <div class="qitem"><div class="qlabel">车辆名称</div><input class="txt" id="q-name" placeholder="支持模糊匹配"></div>
+              <div class="qitem"><div class="qlabel">车牌号</div><input class="txt" id="q-plate" placeholder="支持模糊匹配"></div>
+              <div class="qitem"><div class="qlabel">承运商</div><input class="txt" id="q-carrier" placeholder="承运商编码/名称，模糊匹配"></div>
+              <div class="qitem"><div class="qlabel">车辆类型</div>
+                <select class="sel" id="q-type"><option>全部</option><option>厢式货车</option><option>平板车</option><option>冷藏车</option><option>牵引车</option><option>挂车</option><option>自卸车</option></select></div>
+              <div class="qitem"><div class="qlabel">是否启用</div>
+                <select class="sel" id="q-enabled"><option>全部</option><option>是</option><option>否</option></select></div>
+              <div class="qitem"><div class="qlabel">创建时间</div>
+                <div class="qrange"><input class="txt" type="date" id="q-date1" title="开始日期"><span class="muted">~</span><input class="txt" type="date" id="q-date2" title="结束日期"></div></div>
+              <div class="qact" style="margin-top:8px">
+                <button class="btn primary" onclick="renderList()">查 询</button>
+                <button class="btn" onclick="resetQuery()">重 置</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-h">车辆列表 <span class="muted" style="font-weight:400;font-size:11px">P1 主界面</span></div>
+          <div class="toolbar">
+            <button class="btn primary" onclick="tb('add')">＋ 新增</button>
+            <button class="btn" onclick="tb('delete')">删除</button>
+            <span class="sep"></span>
+            <button class="btn" onclick="tb('enable')">启用</button>
+            <button class="btn" onclick="tb('disable')">停用</button>
+            <span class="sep"></span>
+            <button class="btn" onclick="tb('import')">导入</button>
+            <button class="btn" onclick="tb('export')">导出</button>
+          </div>
+          <table class="stripe">
+            <thead>
+              <tr>
+                <th class="c-check"><input type="checkbox" id="ck-all"></th>
+                <th>车辆编码</th><th>车辆名称</th><th>车辆类型</th><th>承运商</th><th>车牌号</th>
+                <th>核定载质量(kg)</th><th>司机数</th><th>是否启用</th><th>最后更新时间</th><th style="width:180px">操作</th>
+              </tr>
+            </thead>
+            <tbody id="p1-tbody"></tbody>
+          </table>
+          <div class="pager">
+            <span>共 <b id="p1-count">0</b> 条</span>
+            <span class="muted">已勾选 <b id="p1-selcount">0</b> 条</span>
+            <select class="sel pg-sel" aria-label="每页条数">
+              <option>10 条/页</option><option>20 条/页</option><option>50 条/页</option>
+            </select>
+            <button class="pg-btn" aria-label="上一页">‹</button>
+            <button class="pg-btn active">1</button>
+            <button class="pg-btn" aria-label="下一页">›</button>
+            <span class="pg-jump">前往 <input class="pg-input" value="1" aria-label="页码"> 页</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════════ P2 新增/编辑车辆（弹窗表单 · 分区折叠） ═══════════ -->
+      <div class="mask hidden" id="dlg-p2" style="padding-top:80px">
+        <div class="modal lg">
+          <div class="modal-h"><span id="p2-title">新增车辆</span>
+            <span class="dlg-tag" id="p2-tag">P2 新增模式</span>
+            <span style="flex:1"></span>
+            <span class="muted" style="font-weight:400;font-size:11px;margin-right:10px">分区纵向展示 · 点击标题栏折叠/展开</span>
+            <button class="modal-x" onclick="cancelForm()">✕</button>
+          </div>
+          <div class="modal-b">
+
+          <!-- 分区1 基本信息 -->
+          <div class="sec">
+            <div class="sec-h" onclick="toggleSec(this)"><span class="arrow">▼</span>基本信息<span class="cnt">必填：车辆编码、车辆名称、车辆类型、VIN、核定载质量、车牌号、承运商</span></div>
+            <div class="sec-b">
+            <div class="fgrid">
+              <div class="fitem"><div class="flabel"><span class="req">*</span>车辆编码</div>
+                <div class="fctrl"><input class="txt mono" id="f-id" maxlength="30" placeholder="仅字母、数字、-、_" oninput="markDirty()">
+                <div class="hint">车辆唯一编码，手工录入；域内唯一（R-MD48），保存后不可修改</div></div></div>
+              <div class="fitem"><div class="flabel"><span class="req">*</span>车辆名称</div>
+                <div class="fctrl"><input class="txt" id="f-name" maxlength="60" oninput="markDirty()"></div></div>
+              <div class="fitem"><div class="flabel"><span class="req">*</span>车辆类型</div>
+                <div class="fctrl"><select class="sel" id="f-type" onchange="markDirty()">
+                  <option value="">请选择</option>
+                  <option>厢式货车</option><option>平板车</option><option>冷藏车</option>
+                  <option>牵引车</option><option>挂车</option><option>自卸车</option>
+                </select><div class="hint">数据字典：车辆类型</div></div></div>
+              <div class="fitem"><div class="flabel"><span class="req">*</span>车辆识别代码</div>
+                <div class="fctrl"><input class="txt mono" id="f-vin" maxlength="17" placeholder="VIN，17 位" oninput="markDirty()">
+                <div class="hint">17 位字母数字（不含 I/O/Q），域内唯一（R-MD50）</div></div></div>
+              <div class="fitem"><div class="flabel">发动机型号</div>
+                <div class="fctrl"><input class="txt" id="f-engine-model" maxlength="50" oninput="markDirty()"></div></div>
+              <div class="fitem"><div class="flabel">发动机号</div>
+                <div class="fctrl"><input class="txt mono" id="f-engine-no" maxlength="50" oninput="markDirty()"></div></div>
+              <div class="fitem"><div class="flabel"><span class="req">*</span>核定载质量</div>
+                <div class="fctrl"><input class="txt" id="f-load" type="number" min="1" placeholder="正整数，单位 kg" oninput="markDirty()">
+                <div class="hint">单位 kg；配载载重校验引用（R-MD53）</div></div></div>
+              <div class="fitem"><div class="flabel">车身颜色</div>
+                <div class="fctrl"><input class="txt" id="f-color" maxlength="20" oninput="markDirty()"></div></div>
+              <div class="fitem"><div class="flabel"><span class="req">*</span>车牌号</div>
+                <div class="fctrl"><input class="txt mono" id="f-plate" maxlength="10" placeholder="如 沪A88231" oninput="markDirty()">
+                <div class="hint">域内唯一（R-MD49）；省份简称+字母+5~6 位（R-MD56）</div></div></div>
+              <div class="fitem"><div class="flabel">GPS设备代码</div>
+                <div class="fctrl"><input class="txt mono" id="f-gps" maxlength="30" oninput="markDirty()">
+                <div class="hint">车载 GPS 设备编号，供在途跟踪对接</div></div></div>
+              <div class="fitem"><div class="flabel">承运商名称</div>
+                <div class="fctrl"><input class="txt" id="f-carrier-name" readonly placeholder="选择承运商后自动带出"></div></div>
+              <div class="fitem"><div class="flabel"><span class="req">*</span>承运商ID</div>
+                <div class="fctrl"><select class="sel" id="f-carrier" onchange="onCarrierChange()"></select>
+                <div class="hint">须为启用状态的承运商（R-MD51）</div></div></div>
+              <div class="fitem"><div class="flabel"><span class="req">*</span>是否启用</div>
+                <div class="fctrl">
+                  <label class="radio"><input type="radio" name="f-enabled" value="是" checked onchange="markDirty()">是</label>
+                  <label class="radio"><input type="radio" name="f-enabled" value="否" onchange="markDirty()">否</label>
+                  <div class="hint">停用后配载/运单新指派不可选择该车辆（R-MD54）</div></div></div>
+            </div>
+            </div>
+          </div>
+
+          <!-- 分区2 司机列表 -->
+          <div class="sec">
+            <div class="sec-h" onclick="toggleSec(this)"><span class="arrow">▼</span>司机列表<span class="cnt" id="sec-drv-cnt">0 人</span></div>
+            <div class="sec-b">
+            <div class="sub-tb-bar">
+              <button class="btn sm primary" onclick="drvAdd()">＋ 新增行</button>
+              <button class="btn sm" onclick="drvDel()">删除行</button>
+              <button class="btn sm" onclick="linkDrivers()">关 联</button>
+              <span class="hint">一个车辆可关联多个司机，同一司机不可重复（R-MD52）；同一车辆最多一名主驾</span>
+            </div>
+            <table>
+              <thead><tr>
+                <th class="c-check"><input type="checkbox" onchange="toggleAll(this,'#drv-tbody')"></th>
+                <th style="width:44px">序号</th><th style="width:220px">司机编码 *</th><th>司机名称</th>
+                <th style="width:130px">手机号码</th><th style="width:90px">是否主驾</th><th style="width:170px">关联时间</th>
+              </tr></thead>
+              <tbody id="drv-tbody"></tbody>
+            </table>
+            </div>
+          </div>
+
+          </div><!-- /modal-b -->
+          <div class="modal-f">
+            <button class="btn" onclick="cancelForm()">取 消</button>
+            <button class="btn primary" onclick="saveForm()">保 存</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════════ P3 车辆详情 ═══════════ -->
+      <section id="screen-p3" class="hidden">
+        <div class="card">
+          <div class="card-h">
+            <span id="p3-title">车辆详情</span>
+            <span id="p3-tags"></span>
+            <span style="flex:1"></span>
+            <button class="btn primary sm" onclick="p3Edit()">编 辑</button>
+            <button class="btn sm" onclick="switchScreen('p1')">返 回</button>
+          </div>
+          <div class="card-b">
+            <div class="dcard">
+              <div class="dcard-t">基本信息</div>
+              <div class="dcard-b"><div class="detail-grid" id="p3-base"></div></div>
+            </div>
+            <div class="dcard">
+              <div class="dcard-t">司机列表</div>
+              <div class="dcard-b" style="padding:0"><table id="p3-drv"></table></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════════ P9 按钮—弹窗关系总览 ═══════════ -->
+      <section id="screen-p9" class="hidden">
+        <div class="card">
+          <div class="card-h">P9 按钮—弹窗/页面跳转关系总览
+            <span class="muted" style="font-weight:400;font-size:11px">对应 3.1.1 按钮—弹窗/页面映射表</span></div>
+          <div class="card-b p9-wrap">
+            <svg class="p9-svg" viewBox="0 0 1120 640" xmlns="http://www.w3.org/2000/svg" font-family="Microsoft YaHei, sans-serif">
+              <defs>
+                <marker id="ah" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+                  <path d="M0,0 L9,4.5 L0,9 z" fill="#009100"/>
+                </marker>
+              </defs>
+
+              <!-- P1 主界面 -->
+              <rect x="30" y="70" width="330" height="400" rx="10" fill="#ffffff" stroke="#E6E6E5"/>
+              <text x="50" y="102" font-size="15" font-weight="800" fill="#0A0E0A">P1 车辆列表（主界面）</text>
+              <text x="50" y="122" font-size="11" fill="#9D9F9D">查询条件区 + 工具栏 + 列表（含行内操作列）+ 分页</text>
+              <line x1="30" y1="136" x2="360" y2="136" stroke="#F8F7F7"/>
+
+              <!-- 工具栏按钮（编辑 B02 / 查看详情 B04 仅行内提供，不在工具栏） -->
+              <text x="50" y="156" font-size="11" fill="#9D9F9D">工具栏</text>
+              <g font-size="12" text-anchor="middle">
+                <rect x="50" y="164" width="118" height="26" rx="5" fill="#E9FAEB" stroke="#B7E0B9"/><text x="109" y="181" fill="#007400" font-weight="700">新增 B01</text>
+                <rect x="50" y="194" width="118" height="26" rx="5" fill="#E9FAEB" stroke="#B7E0B9"/><text x="109" y="211" fill="#007400" font-weight="700">删除 B03</text>
+                <rect x="50" y="224" width="118" height="26" rx="5" fill="#F8F8F8" stroke="#E6E6E5"/><text x="109" y="241" fill="#9D9F9D" font-weight="700">启用 B07</text>
+                <rect x="50" y="254" width="118" height="26" rx="5" fill="#E9FAEB" stroke="#B7E0B9"/><text x="109" y="271" fill="#007400" font-weight="700">停用 B08</text>
+                <rect x="50" y="284" width="118" height="26" rx="5" fill="#E9FAEB" stroke="#B7E0B9"/><text x="109" y="301" fill="#007400" font-weight="700">导入 B05</text>
+                <rect x="50" y="314" width="118" height="26" rx="5" fill="#E9FAEB" stroke="#B7E0B9"/><text x="109" y="331" fill="#007400" font-weight="700">导出 B06</text>
+              </g>
+              <text x="180" y="241" font-size="11.5" fill="#9D9F9D">直接执行，无弹窗（B07）</text>
+
+              <!-- 列表行内操作列（每行） -->
+              <text x="50" y="366" font-size="11" fill="#9D9F9D">列表行内操作列（每行）</text>
+              <g text-anchor="middle">
+                <rect x="50" y="374" width="118" height="26" rx="5" fill="#E9EEF9" stroke="#B7D7F0"/><text x="109" y="391" font-size="12" fill="#2261DD" font-weight="700">详情 B04</text>
+                <rect x="180" y="374" width="118" height="26" rx="5" fill="#E9EEF9" stroke="#B7D7F0"/><text x="239" y="391" font-size="12" fill="#2261DD" font-weight="700">编辑 B02</text>
+                <rect x="50" y="404" width="118" height="26" rx="5" fill="#E9FAEB" stroke="#B7E0B9"/><text x="109" y="421" font-size="12" fill="#007400" font-weight="700">删除 B03</text>
+                <rect x="180" y="404" width="118" height="26" rx="5" fill="#E9FAEB" stroke="#B7E0B9"/><text x="239" y="421" font-size="11" fill="#007400" font-weight="700">停用/启用 B07·B08</text>
+              </g>
+
+              <!-- P2 / P3 -->
+              <rect x="720" y="36" width="370" height="78" rx="10" fill="#FAF6EA" stroke="#E0C98F"/>
+              <text x="740" y="64" font-size="14" font-weight="800" fill="#0A0E0A">P2 新增/编辑车辆（弹窗表单）</text>
+              <text x="740" y="88" font-size="11" fill="#3B3E3B">纵向折叠区：基本信息 / 司机列表</text>
+              <text x="1070" y="64" font-size="11" fill="#9D9F9D" text-anchor="end">← 新增 B01 / 行内编辑 B02</text>
+
+              <rect x="720" y="132" width="370" height="62" rx="10" fill="#E9FAEB" stroke="#009100"/>
+              <text x="740" y="157" font-size="14" font-weight="800" fill="#007400">P3 车辆详情（只读页）</text>
+              <text x="740" y="178" font-size="11" fill="#3B3E3B">分组卡片展示全部字段 + 司机列表</text>
+
+              <!-- D1~D4 -->
+              <g font-size="13">
+                <rect x="720" y="212" width="370" height="48" rx="8" fill="#FAF6EA" stroke="#E0C98F"/>
+                <text x="740" y="241" font-weight="800" fill="#0A0E0A">D1 删除确认框</text>
+                <rect x="720" y="272" width="370" height="48" rx="8" fill="#FAF6EA" stroke="#E0C98F"/>
+                <text x="740" y="301" font-weight="800" fill="#0A0E0A">D2 停用确认框</text>
+                <rect x="720" y="332" width="370" height="48" rx="8" fill="#FAF6EA" stroke="#E0C98F"/>
+                <text x="740" y="361" font-weight="800" fill="#0A0E0A">D3 导入弹窗</text>
+                <rect x="720" y="392" width="370" height="48" rx="8" fill="#FAF6EA" stroke="#E0C98F"/>
+                <text x="740" y="421" font-weight="800" fill="#0A0E0A">D4 导出弹窗</text>
+              </g>
+              <g font-size="11" fill="#9D9F9D" text-anchor="end">
+                <text x="1070" y="241">← 删除 B03（工具栏/行内）</text>
+                <text x="1070" y="301">← 停用 B08（工具栏/行内）</text>
+                <text x="1070" y="361">← 导入 B05</text>
+                <text x="1070" y="421">← 导出 B06</text>
+              </g>
+
+              <!-- 虚线箭头 -->
+              <g fill="none" stroke="#009100" stroke-width="1.6" stroke-dasharray="6 4" marker-end="url(#ah)">
+                <path d="M168 177 C 430 177, 470 70, 714 70"/>
+                <path d="M168 207 C 430 207, 470 236, 714 236"/>
+                <path d="M168 267 C 430 267, 470 296, 714 296"/>
+                <path d="M168 297 C 430 297, 470 356, 714 356"/>
+                <path d="M168 327 C 430 327, 470 416, 714 416"/>
+                <path d="M168 387 C 430 387, 470 163, 714 163"/>
+                <path d="M298 387 C 450 387, 470 88, 714 88"/>
+                <path d="M168 417 C 430 417, 470 240, 714 240"/>
+                <path d="M298 417 C 450 417, 470 300, 714 300"/>
+              </g>
+
+              <!-- 底部说明 -->
+              <rect x="30" y="490" width="1060" height="120" rx="8" fill="#F8F8F8" stroke="#E6E6E5"/>
+              <line x1="50" y1="515" x2="88" y2="515" stroke="#009100" stroke-width="1.6" stroke-dasharray="6 4"/>
+              <text x="96" y="519" font-size="11.5" fill="#3B3E3B">虚线箭头 = 单击按钮后打开目标弹窗/页面（本原型中均可实际点击体验）</text>
+              <text x="50" y="542" font-size="11.5" fill="#3B3E3B">直接执行、无弹窗的按钮：P1【启用 B07】；P2【保存 B09 / 取消 B10 / 新增行·删除行 B11·B12 / 关联 B13】</text>
+              <text x="50" y="561" font-size="11.5" fill="#3B3E3B">P3【编辑 B14 / 返回 B15】；弹窗内【确认 B16/B17】【下载模板 B18】【上传附件 B19】【导出 B20】</text>
+              <text x="50" y="580" font-size="11.5" fill="#3B3E3B">P1 列表每行提供行内操作【详情 / 编辑 / 删除 / 停用·启用】（图中蓝色）；编辑 B02 与详情 B04 仅行内提供、工具栏不设</text>
+              <text x="50" y="599" font-size="11.5" fill="#3B3E3B">车辆归属承运商（R-MD51）；VIN 17 位且唯一（R-MD50）；车牌号唯一（R-MD49）；司机不可重复、同车一名主驾（R-MD52）</text>
+            </svg>
+          </div>
+        </div>
+        <div class="note-strip">
+          <b>体验路径：</b>P1 每行均提供行内操作【详情 / 编辑 / 删除 / 停用·启用】，直接对该行执行，无需先勾选（编辑/详情仅行内提供，工具栏不设）；工具栏提供新增、删除、启用、停用、导入、导出，删除/启用/停用为批量操作需先勾选。【新增/编辑】弹出 P2 表单弹窗（基本信息 / 司机列表两分区，点击标题栏可折叠/展开），保存校验：车辆编码唯一（R-MD48）、车牌号唯一（R-MD49）、VIN 17 位且唯一（R-MD50）、承运商须启用（R-MD51）、核定载质量正整数（R-MD56）、车牌格式（R-MD56）、司机不可重复且主驾唯一（R-MD52）。规则演示数据：V-70001/V-70003/V-70007 已被业务单据引用（删除触发 R-MD55）；承运商 PC-20005 为停用状态，不出现在下拉中（R-MD51）；V-70001 已关联 2 名司机（其中 1 名主驾），可体验重复关联与主驾唯一校验。
+        </div>
+      </section>
+
+    </div>
+  </main>
+</div>
+
+<!-- ═══════════ D1 删除确认框 ═══════════ -->
+<div class="mask hidden" id="dlg-d1">
+  <div class="modal">
+    <div class="modal-h">删除确认 <span class="dlg-tag">D1 · B16</span>
+      <button class="modal-x" onclick="closeModal('dlg-d1')">✕</button></div>
+    <div class="modal-b"><div class="modal-warn">
+      <div class="warn-ic red">!</div>
+      <div>确认删除选中的 <b id="d1-count">0</b> 条车辆记录？<br>
+        <span style="color:var(--muted);font-size:11.5px">车辆未被任何业务单据（配载计划/运单/在途跟踪）引用时方可删除，否则仅可停用（R-MD55）；删除为逻辑删除，保留档案供历史单据追溯。</span>
+        <div id="d1-ids" class="mono" style="margin-top:6px;color:var(--muted)"></div>
+      </div></div></div>
+    <div class="modal-f">
+      <button class="btn" onclick="closeModal('dlg-d1')">取消</button>
+      <button class="btn danger" onclick="doDelete()">确 认</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ D2 停用确认框 ═══════════ -->
+<div class="mask hidden" id="dlg-d2">
+  <div class="modal">
+    <div class="modal-h">停用确认 <span class="dlg-tag">D2 · B17</span>
+      <button class="modal-x" onclick="closeModal('dlg-d2')">✕</button></div>
+    <div class="modal-b"><div class="modal-warn">
+      <div class="warn-ic">!</div>
+      <div>确认停用选中的 <b id="d2-count">0</b> 条车辆记录？<br>
+        <span style="color:var(--muted);font-size:11.5px">停用后配载计划、运单指派不可选择该车辆，历史单据不受影响（R-MD54）。</span>
+        <div id="d2-ids" class="mono" style="margin-top:6px;color:var(--muted)"></div>
+      </div></div></div>
+    <div class="modal-f">
+      <button class="btn" onclick="closeModal('dlg-d2')">取消</button>
+      <button class="btn primary" onclick="doDisable()">确 认</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ D3 导入弹窗 ═══════════ -->
+<div class="mask hidden" id="dlg-d3">
+  <div class="modal">
+    <div class="modal-h">导入车辆 <span class="dlg-tag">D3 · B18/B19</span>
+      <button class="modal-x" onclick="closeModal('dlg-d3')">✕</button></div>
+    <div class="modal-b">
+      <div class="fitem"><div class="flabel" style="width:80px">导入模式</div>
+        <div class="fctrl">
+          <label class="radio"><input type="radio" name="d3-mode" value="新增" checked>新增</label>
+          <label class="radio"><input type="radio" name="d3-mode" value="更新">更新</label>
+          <div class="hint" style="line-height:32px">新增模式要求车辆编码、车牌号、VIN 唯一；更新模式按车辆编码匹配覆盖</div></div></div>
+      <div class="fitem" style="margin-top:12px"><div class="flabel" style="width:80px">模板文件</div>
+        <div class="fctrl"><button class="btn sm" onclick="toast('车辆导入模板下载中…','info')">⬇ 下载模板</button></div></div>
+      <div class="fitem" style="margin-top:12px"><div class="flabel" style="width:80px">选择文件</div>
+        <div class="fctrl"><input type="file" id="d3-file" class="txt" style="padding:5px 8px" accept=".xlsx,.xls"></div></div>
+      <div id="d3-result" class="result-box hidden">
+        导入完成：成功 <b style="color:var(--brand)">8</b> 行，失败 <b style="color:var(--red)">2</b> 行。
+        <a href="javascript:;" onclick="toast('错误明细文件下载中…','info')">下载错误明细</a>
+        <div class="hint">车辆编码/名称/类型/VIN/载质量/车牌号/承运商必输；编码、车牌号、VIN 唯一（R-MD48~R-MD50）；校验失败行不入库，错误文件注明原因</div>
+      </div>
+    </div>
+    <div class="modal-f">
+      <button class="btn" onclick="closeModal('dlg-d3')">取消</button>
+      <button class="btn primary" onclick="doImport()">上传附件</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ D4 导出弹窗 ═══════════ -->
+<div class="mask hidden" id="dlg-d4">
+  <div class="modal">
+    <div class="modal-h">导出车辆 <span class="dlg-tag">D4 · B20</span>
+      <button class="modal-x" onclick="closeModal('dlg-d4')">✕</button></div>
+    <div class="modal-b">
+      <div class="fitem"><div class="flabel" style="width:80px">导出范围</div>
+        <div class="fctrl">
+          <label class="radio"><input type="radio" name="d4-scope" value="sel" checked>当前勾选的 <b id="d4-cnt">0</b> 条记录</label><br>
+          <label class="radio"><input type="radio" name="d4-scope" value="query">按当前查询条件（共 <b id="d4-qcnt">0</b> 条）</label><br>
+          <label class="radio"><input type="radio" name="d4-scope" value="all">全部车辆</label>
+        </div></div>
+    </div>
+    <div class="modal-f">
+      <button class="btn" onclick="closeModal('dlg-d4')">取消</button>
+      <button class="btn primary" onclick="doExport()">导 出</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ 离开确认（B10） ═══════════ -->
+<div class="mask hidden" id="dlg-leave">
+  <div class="modal" style="width:420px">
+    <div class="modal-h">离开确认 <span class="dlg-tag">B10</span>
+      <button class="modal-x" onclick="closeModal('dlg-leave')">✕</button></div>
+    <div class="modal-b"><div class="modal-warn">
+      <div class="warn-ic">!</div><div id="leave-msg">存在未保存的修改，确定离开？</div></div></div>
+    <div class="modal-f">
+      <button class="btn primary" onclick="closeModal('dlg-leave')">继续编辑</button>
+      <button class="btn" onclick="leaveConfirm()">确定离开</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+/* ================= 工具 ================= */
+const $ = s => document.querySelector(s);
+const $$ = s => Array.from(document.querySelectorAll(s));
+function esc(s){ return String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+function now(){ const d=new Date(), p=n=>String(n).padStart(2,'0');
+  return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`; }
+function toast(msg, type){ type = type || 'info';
+  const d = document.createElement('div'); d.className = 'toast-item toast-' + type; d.textContent = msg;
+  $('#toast').appendChild(d);
+  setTimeout(()=>{ d.style.transition='opacity .3s'; d.style.opacity='0'; setTimeout(()=>d.remove(), 300); }, 2800); }
+function openModal(id){ $('#'+id).classList.remove('hidden'); }
+function closeModal(id){ $('#'+id).classList.add('hidden'); }
+function getRadio(name){ const r = document.querySelector(`input[name="${name}"]:checked`); return r ? r.value : null; }
+function setRadio(name, v){ $$(`input[name="${name}"]`).forEach(r => r.checked = r.value === v); }
+function toggleAll(src, tbodySel){ $$(tbodySel + ' .row-check').forEach(c => c.checked = src.checked); }
+
+/* ================= 模拟数据：承运商（PRD-MD-002） ================= */
+const CARRIERS = {
+  'PC-20001': { name:'华通运输有限公司', enabled:true },
+  'PC-20002': { name:'恒达物流有限公司', enabled:true },
+  'PC-20003': { name:'顺捷车队', enabled:true },
+  'PC-20004': { name:'鑫远供应链有限公司', enabled:true },
+  'PC-20005': { name:'鹏程货运有限公司', enabled:false }
+};
+
+/* ================= 模拟数据：司机（PRD-MD-005） ================= */
+const DRIVERS = {
+  'D-60001': { name:'王志强', phone:'13800138001', enabled:true },
+  'D-60002': { name:'李国庆', phone:'13800138002', enabled:true },
+  'D-60003': { name:'张建军', phone:'13800138003', enabled:true },
+  'D-60004': { name:'刘德海', phone:'13800138004', enabled:false },
+  'D-60005': { name:'陈明辉', phone:'13800138005', enabled:true },
+  'D-60006': { name:'赵永刚', phone:'13800138006', enabled:true },
+  'D-60007': { name:'孙立军', phone:'13800138007', enabled:false },
+  'D-60008': { name:'周文斌', phone:'13800138008', enabled:true }
+};
+
+/* ================= 模拟数据：车辆 ================= */
+let vehicles = [
+  { id:'V-70001', name:'厢式货车-4.2米', type:'厢式货车', vin:'LSVAA4180E2123456',
+    engineModel:'ISF2.8s5', engineNo:'E201908001', load:4500, color:'白色', plate:'沪A88231',
+    gps:'GPS-SH-10001', carrier:'PC-20001', enabled:true, referenced:true, updateTime:'2026-11-18 14:22:31',
+    drivers:[ { id:'D-60001', primary:true, linkedAt:'2026-03-12 10:20:00' },
+              { id:'D-60002', primary:false, linkedAt:'2026-05-08 09:12:33' } ] },
+  { id:'V-70002', name:'厢式货车-9.6米', type:'厢式货车', vin:'LFV2A21K8D4098765',
+    engineModel:'YC6J220-52', engineNo:'E202105012', load:15000, color:'蓝色', plate:'沪B19345',
+    gps:'GPS-SH-10002', carrier:'PC-20001', enabled:true, referenced:false, updateTime:'2026-11-16 09:05:12',
+    drivers:[ { id:'D-60002', primary:true, linkedAt:'2026-06-20 15:30:00' } ] },
+  { id:'V-70003', name:'冷藏车-7.6米', type:'冷藏车', vin:'LGWEF4A50GF123456',
+    engineModel:'WP4.1Q160E50', engineNo:'E202203003', load:8000, color:'白色', plate:'沪C56788',
+    gps:'GPS-SH-10003', carrier:'PC-20002', enabled:true, referenced:true, updateTime:'2026-11-10 16:44:03',
+    drivers:[ { id:'D-60003', primary:true, linkedAt:'2026-04-15 11:02:45' } ] },
+  { id:'V-70004', name:'牵引车-6×4', type:'牵引车', vin:'LGBH52E09CY123456',
+    engineModel:'WP13.500E50', engineNo:'E202003004', load:25000, color:'黑色', plate:'沪D22876',
+    gps:'GPS-SH-10004', carrier:'PC-20002', enabled:true, referenced:false, updateTime:'2026-11-19 11:30:45',
+    drivers:[ { id:'D-60005', primary:true, linkedAt:'2026-09-21 16:40:10' } ] },
+  { id:'V-70005', name:'平板车-13米', type:'平板车', vin:'LJ11R9BE0A8123456',
+    engineModel:'', engineNo:'', load:12000, color:'红色', plate:'苏E33456',
+    gps:'', carrier:'PC-20003', enabled:false, referenced:false, updateTime:'2026-11-12 10:18:26',
+    drivers:[] },
+  { id:'V-70006', name:'厢式货车-4.2米', type:'厢式货车', vin:'LRVSB2BB0GT123456',
+    engineModel:'4KH1CN5HS', engineNo:'E202105006', load:4500, color:'白色', plate:'苏E77821',
+    gps:'GPS-SZ-10006', carrier:'PC-20003', enabled:true, referenced:false, updateTime:'2026-11-17 15:02:57',
+    drivers:[ { id:'D-60008', primary:true, linkedAt:'2026-08-14 11:26:07' } ] },
+  { id:'V-70007', name:'挂车-16米', type:'挂车', vin:'LZSHDMZ00E0123456',
+    engineModel:'', engineNo:'', load:30000, color:'灰色', plate:'沪F99012',
+    gps:'GPS-SH-10007', carrier:'PC-20004', enabled:true, referenced:true, updateTime:'2026-11-20 09:55:33',
+    drivers:[ { id:'D-60006', primary:true, linkedAt:'2026-07-03 10:11:22' } ] },
+  { id:'V-70008', name:'自卸车-8×4', type:'自卸车', vin:'LJXCM3FC0ET123456',
+    engineModel:'WP10.336E53', engineNo:'E202203008', load:16000, color:'黄色', plate:'沪G10234',
+    gps:'GPS-SH-10008', carrier:'PC-20004', enabled:false, referenced:false, updateTime:'2026-11-05 13:40:19',
+    drivers:[] }
+];
+
+/* ================= 创建时间（模拟：按更新时间回溯） ================= */
+const CREATED_BACK_DAYS = [186, 145, 210, 122, 168, 99, 240, 74];
+vehicles.forEach((c, i) => {
+  const d = new Date(c.updateTime.replace(/-/g, '/'));
+  d.setDate(d.getDate() - CREATED_BACK_DAYS[i]);
+  const p = n => String(n).padStart(2, '0');
+  c.createdAt = `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} 09:00:00`;
+});
+
+/* ================= 状态 ================= */
+let sel = new Set();
+let pending = [];
+let editingId = null;
+let draft = null;
+let formDirty = false;
+let currentDetailId = null;
+
+/* ================= 界面切换 ================= */
+function switchScreen(k){
+  $$('section[id^="screen-"]').forEach(x => x.classList.add('hidden'));
+  $('#screen-' + k).classList.remove('hidden');
+  $$('.ptab').forEach(t => t.classList.toggle('active', t.dataset.k === k));
+}
+function toggleSec(h){ h.parentElement.classList.toggle('closed'); }
+function ensureSec(i){
+  const s = $$('#dlg-p2 .sec')[i];
+  if (!s) return;
+  s.classList.remove('closed');
+  s.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+/* ================= P1 列表 ================= */
+function getFiltered(){
+  const q = { code: $('#q-code').value.trim().toLowerCase(), name: $('#q-name').value.trim(),
+              plate: $('#q-plate').value.trim().toUpperCase(), carrier: $('#q-carrier').value.trim(),
+              type: $('#q-type').value, enabled: $('#q-enabled').value,
+              d1: $('#q-date1').value, d2: $('#q-date2').value };
+  return vehicles.filter(c => {
+    const car = CARRIERS[c.carrier];
+    const carHit = !q.carrier || c.carrier.toLowerCase().includes(q.carrier.toLowerCase()) ||
+                   (car && car.name.includes(q.carrier));
+    return (!q.code || c.id.toLowerCase().includes(q.code)) &&
+      (!q.name || c.name.includes(q.name)) &&
+      (!q.plate || c.plate.toUpperCase().includes(q.plate)) &&
+      carHit &&
+      (q.type === '全部' || c.type === q.type) &&
+      (q.enabled === '全部' || (q.enabled === '是') === c.enabled) &&
+      (!q.d1 || c.createdAt.slice(0, 10) >= q.d1) &&
+      (!q.d2 || c.createdAt.slice(0, 10) <= q.d2);
+  });
+}
+function renderList(){
+  if ($('#q-date1').value && $('#q-date2').value && $('#q-date1').value > $('#q-date2').value)
+    toast('创建时间止日期需不早于起日期', 'error');
+  const list = getFiltered();
+  $('#p1-count').textContent = list.length;
+  $('#p1-selcount').textContent = sel.size;
+  $('#p1-tbody').innerHTML = list.map(c => {
+    const car = CARRIERS[c.carrier];
+    return `
+    <tr data-id="${esc(c.id)}" class="${sel.has(c.id) ? 'selected' : ''}">
+      <td class="c-check"><input type="checkbox" ${sel.has(c.id) ? 'checked' : ''}></td>
+      <td class="mono">${esc(c.id)}</td>
+      <td>${esc(c.name)}</td>
+      <td>${esc(c.type)}</td>
+      <td>${car ? esc(car.name) : '<span class="muted">未匹配</span>'}</td>
+      <td class="mono">${esc(c.plate)}</td>
+      <td class="mono">${Number(c.load).toLocaleString()}</td>
+      <td class="mono">${c.drivers.length}</td>
+      <td>${c.enabled ? '<span class="status green">是</span>' : '<span class="status gray">否</span>'}</td>
+      <td class="muted mono">${esc(c.updateTime)}</td>
+      <td class="c-act">
+        <button class="act" onclick="event.stopPropagation();rowAct('view','${esc(c.id)}')">详情</button><span class="act-sep">|</span><button class="act" onclick="event.stopPropagation();rowAct('edit','${esc(c.id)}')">编辑</button><span class="act-sep">|</span><button class="act danger" onclick="event.stopPropagation();rowAct('delete','${esc(c.id)}')">删除</button><span class="act-sep">|</span>${c.enabled
+          ? `<button class="act" onclick="event.stopPropagation();rowAct('disable','${esc(c.id)}')">停用</button>`
+          : `<button class="act" onclick="event.stopPropagation();rowAct('enable','${esc(c.id)}')">启用</button>`}
+      </td>
+    </tr>`;
+  }).join('') || `<tr><td colspan="11" class="empty">未查询到符合条件的车辆记录</td></tr>`;
+  $$('#p1-tbody tr[data-id]').forEach(tr =>
+    tr.addEventListener('click', () => { const id = tr.dataset.id;
+      sel.has(id) ? sel.delete(id) : sel.add(id); renderList(); }));
+  $('#ck-all').checked = list.length > 0 && list.every(c => sel.has(c.id));
+}
+function resetQuery(){
+  ['q-code','q-name','q-plate','q-carrier','q-date1','q-date2'].forEach(id => $('#'+id).value = '');
+  $('#q-type').value = '全部'; $('#q-enabled').value = '全部'; renderList();
+}
+$('#ck-all').addEventListener('change', function(){
+  const list = getFiltered();
+  if (this.checked) list.forEach(c => sel.add(c.id)); else list.forEach(c => sel.delete(c.id));
+  renderList();
+});
+
+/* ================= P1 工具栏 ================= */
+function tb(action){
+  const arr = [...sel].map(id => vehicles.find(c => c.id === id)).filter(Boolean);
+  if (action === 'add') { openForm('new'); return; }
+  if (action === 'import') { openModal('dlg-d3'); return; }
+  if (action === 'export') {
+    $('#d4-cnt').textContent = sel.size; $('#d4-qcnt').textContent = getFiltered().length;
+    openModal('dlg-d4'); return;
+  }
+  if (!arr.length) { toast('请先勾选车辆记录', 'error'); return; }
+  const ids = arr.map(c => c.id).join('、');
+  switch (action) {
+    case 'delete':
+      pending = arr.map(c => c.id);
+      $('#d1-count').textContent = arr.length; $('#d1-ids').textContent = ids; openModal('dlg-d1'); break;
+    case 'disable': {
+      const ok = arr.filter(c => c.enabled);
+      if (!ok.length) { toast('请勾选"是否启用=是"的车辆记录', 'error'); return; }
+      pending = ok.map(c => c.id);
+      $('#d2-count').textContent = ok.length; $('#d2-ids').textContent = ok.map(c => c.id).join('、');
+      openModal('dlg-d2'); break; }
+    case 'enable': {
+      const ok = arr.filter(c => !c.enabled);
+      if (!ok.length) { toast('请勾选"是否启用=否"的车辆记录', 'error'); return; }
+      ok.forEach(c => c.enabled = true); renderList();
+      toast(`已启用 ${ok.length} 条车辆记录`, 'success'); break; }
+  }
+}
+
+/* ---- P1 行内操作列 ---- */
+function rowAct(action, id){
+  const c = vehicles.find(x => x.id === id); if (!c) return;
+  switch (action) {
+    case 'view': openDetail(id); break;
+    case 'edit': openForm('edit', id); break;
+    case 'delete':
+      pending = [id];
+      $('#d1-count').textContent = 1; $('#d1-ids').textContent = id; openModal('dlg-d1'); break;
+    case 'disable':
+      pending = [id];
+      $('#d2-count').textContent = 1; $('#d2-ids').textContent = id; openModal('dlg-d2'); break;
+    case 'enable':
+      c.enabled = true; renderList();
+      toast(`已启用车辆 ${id}`, 'success'); break;
+  }
+}
+
+/* ================= 弹窗动作 ================= */
+function doDelete(){
+  const arr = pending.map(id => vehicles.find(c => c.id === id)).filter(Boolean);
+  const bad = arr.filter(c => c.referenced);
+  closeModal('dlg-d1'); pending = [];
+  if (bad.length) { toast(`车辆 ${bad.map(c => c.id).join('、')} 已被业务数据引用，不可删除，请使用停用（R-MD55）`, 'error'); return; }
+  vehicles = vehicles.filter(c => !arr.some(x => x.id === c.id));
+  arr.forEach(c => sel.delete(c.id));
+  renderList();
+  toast(`已删除 ${arr.length} 条车辆记录（逻辑删除，保留档案供历史单据追溯）`, 'success');
+}
+function doDisable(){
+  const arr = pending.map(id => vehicles.find(c => c.id === id)).filter(Boolean);
+  arr.forEach(c => c.enabled = false);
+  closeModal('dlg-d2'); pending = []; renderList();
+  toast(`已停用 ${arr.length} 条车辆记录`, 'success');
+}
+function doImport(){
+  if (!$('#d3-file').value) { toast('请先选择要导入的文件', 'error'); return; }
+  const mode = getRadio('d3-mode');
+  $('#d3-result').classList.remove('hidden');
+  toast(`导入完成（${mode}模式）：成功 8 行，失败 2 行`, 'warn');
+}
+function doExport(){
+  const scope = getRadio('d4-scope');
+  const label = scope === 'sel' ? '当前勾选记录' : scope === 'query' ? '当前查询条件' : '全部车辆';
+  closeModal('dlg-d4');
+  toast(`已按【${label}】范围生成 Excel 文件并开始下载`, 'success');
+}
+
+/* ================= P2 表单 ================= */
+function markDirty(){ formDirty = true; }
+function openForm(mode, id){
+  editingId = mode === 'edit' ? id : null;
+  const src = mode === 'edit' ? vehicles.find(c => c.id === id) : null;
+  draft = src ? JSON.parse(JSON.stringify(src))
+              : { id:'', name:'', type:'', vin:'', engineModel:'', engineNo:'', load:'', color:'',
+                  plate:'', gps:'', carrier:'', enabled:true, drivers:[], referenced:false };
+  $('#p2-title').textContent = mode === 'edit' ? `编辑车辆 · ${draft.id}` : '新增车辆';
+  $('#p2-tag').textContent = mode === 'edit' ? 'P2 编辑模式' : 'P2 新增模式';
+  $('#f-id').disabled = mode === 'edit';
+  const enabledCodes = Object.keys(CARRIERS).filter(k => CARRIERS[k].enabled);
+  let opts = enabledCodes.map(code =>
+    `<option value="${code}" ${code === draft.carrier ? 'selected' : ''}>${code} ${esc(CARRIERS[code].name)}</option>`).join('');
+  if (draft.carrier && !CARRIERS[draft.carrier].enabled) {
+    opts = `<option value="${draft.carrier}" selected>${draft.carrier} ${esc(CARRIERS[draft.carrier].name)}（已停用）</option>` + opts;
+  }
+  if (!draft.carrier) opts = '<option value="">请选择承运商</option>' + opts;
+  $('#f-carrier').innerHTML = opts;
+  fillForm(); onCarrierChange(false); renderDrivers();
+  $$('#dlg-p2 .sec').forEach(s => s.classList.remove('closed'));
+  const mb = $('#dlg-p2 .modal-b'); if (mb) mb.scrollTop = 0;
+  formDirty = false; openModal('dlg-p2');
+}
+function fillForm(){
+  $('#f-id').value = draft.id; $('#f-name').value = draft.name;
+  $('#f-type').value = draft.type || '';
+  $('#f-vin').value = draft.vin || '';
+  $('#f-engine-model').value = draft.engineModel || '';
+  $('#f-engine-no').value = draft.engineNo || '';
+  $('#f-load').value = draft.load || '';
+  $('#f-color').value = draft.color || '';
+  $('#f-plate').value = draft.plate || '';
+  $('#f-gps').value = draft.gps || '';
+  setRadio('f-enabled', draft.enabled ? '是' : '否');
+}
+function onCarrierChange(dirty){
+  const code = $('#f-carrier').value;
+  $('#f-carrier-name').value = code && CARRIERS[code] ? CARRIERS[code].name : '';
+  if (dirty !== false) markDirty();
+}
+function saveForm(){
+  const id = $('#f-id').value.trim(), name = $('#f-name').value.trim();
+  const type = $('#f-type').value, vin = $('#f-vin').value.trim().toUpperCase();
+  const plate = $('#f-plate').value.trim().toUpperCase();
+  const load = $('#f-load').value.trim(), carrier = $('#f-carrier').value;
+  if (!id) { ensureSec(0); $('#f-id').focus(); toast('请填写车辆编码', 'error'); return; }
+  if (!/^[A-Za-z0-9_-]+$/.test(id)) { ensureSec(0); toast('车辆编码仅允许字母、数字、-、_', 'error'); return; }
+  if (!editingId && vehicles.some(c => c.id === id)) { ensureSec(0); toast('车辆编码已存在（R-MD48）', 'error'); return; }
+  if (!name) { ensureSec(0); $('#f-name').focus(); toast('请填写车辆名称', 'error'); return; }
+  if (!type) { ensureSec(0); toast('请选择车辆类型', 'error'); return; }
+  if (!vin) { ensureSec(0); $('#f-vin').focus(); toast('请填写车辆识别代码（VIN）', 'error'); return; }
+  if (!/^[A-HJ-NPR-Z0-9]{17}$/.test(vin)) { ensureSec(0); toast('车辆识别代码须为 17 位字母数字（不含 I/O/Q，R-MD50）', 'error'); return; }
+  if (vehicles.some(c => c.vin.toUpperCase() === vin && c.id !== editingId)) { ensureSec(0); toast('车辆识别代码已存在（R-MD50）', 'error'); return; }
+  if (!/^[1-9]\d*$/.test(load)) { ensureSec(0); toast('核定载质量须为正整数（kg，R-MD56）', 'error'); return; }
+  if (!plate) { ensureSec(0); $('#f-plate').focus(); toast('请填写车牌号', 'error'); return; }
+  if (!/^[一-龥][A-Z][A-Z0-9]{5,6}$/.test(plate)) { ensureSec(0); toast('车牌号格式不正确（省份简称+字母+5~6位，R-MD56）', 'error'); return; }
+  if (vehicles.some(c => c.plate.toUpperCase() === plate && c.id !== editingId)) { ensureSec(0); toast('车牌号已存在（R-MD49）', 'error'); return; }
+  if (!carrier) { ensureSec(0); toast('请选择承运商', 'error'); return; }
+  if (!CARRIERS[carrier] || !CARRIERS[carrier].enabled) { ensureSec(0); toast('承运商未启用，不可选择（R-MD51）', 'error'); return; }
+  const dids = draft.drivers.map(d => (d.id || '').trim());
+  if (dids.some(v => !v)) { ensureSec(1); toast('司机编码不能为空，请选择或删除该行', 'error'); return; }
+  const unknown = dids.filter(v => !DRIVERS[v] || !DRIVERS[v].enabled);
+  if (unknown.length) { ensureSec(1); toast(`司机 ${unknown.join('、')} 不存在或未启用，不可关联（R-MD52）`, 'error'); return; }
+  if (new Set(dids).size !== dids.length) { ensureSec(1); toast('同一司机不可重复关联（R-MD52）', 'error'); return; }
+  if (draft.drivers.filter(d => d.primary).length > 1) { ensureSec(1); toast('同一车辆仅允许一名主驾（R-MD52）', 'error'); return; }
+  draft.id = id; draft.name = name; draft.type = type; draft.vin = vin;
+  draft.load = Number(load); draft.plate = plate;
+  draft.engineModel = $('#f-engine-model').value.trim();
+  draft.engineNo = $('#f-engine-no').value.trim();
+  draft.color = $('#f-color').value.trim();
+  draft.gps = $('#f-gps').value.trim();
+  draft.carrier = carrier;
+  draft.enabled = getRadio('f-enabled') === '是';
+  draft.drivers.forEach((d, i) => { d.id = dids[i]; if (!d.linkedAt) d.linkedAt = now(); });
+  draft.updateTime = now(); if (!draft.createdAt) draft.createdAt = now();
+  if (editingId) { const i = vehicles.findIndex(c => c.id === editingId); draft.referenced = vehicles[i].referenced; vehicles[i] = draft; }
+  else { draft.referenced = false; vehicles.push(draft); }
+  closeModal('dlg-p2'); sel.clear(); renderList(); editingId = null; formDirty = false;
+  if (!$('#screen-p3').classList.contains('hidden') && currentDetailId) openDetail(currentDetailId);
+  toast('保存成功', 'success');
+}
+function cancelForm(){
+  if (formDirty) openModal('dlg-leave');
+  else { editingId = null; closeModal('dlg-p2'); }
+}
+function leaveConfirm(){ closeModal('dlg-leave'); closeModal('dlg-p2'); editingId = null; formDirty = false; }
+
+/* ---- P2 分区2：司机列表（B11/B12/B13，R-MD52） ---- */
+function driverSelect(i, selected){
+  const enabled = Object.keys(DRIVERS).filter(k => DRIVERS[k].enabled);
+  let opts = '<option value="">请选择司机</option>' + enabled.map(code =>
+    `<option value="${code}" ${code === selected ? 'selected' : ''}>${code} ${esc(DRIVERS[code].name)}</option>`).join('');
+  if (selected && DRIVERS[selected] && !DRIVERS[selected].enabled) {
+    opts = `<option value="${selected}" selected>${selected} ${esc(DRIVERS[selected].name)}（已停用）</option>` + opts;
+  }
+  return `<select class="sel" onchange="onDrvId(${i}, this.value)">${opts}</select>`;
+}
+function renderDrivers(){
+  const cnt = $('#sec-drv-cnt');
+  if (cnt) cnt.textContent = draft.drivers.length + ' 人';
+  $('#drv-tbody').innerHTML = draft.drivers.map((d, i) => {
+    const info = DRIVERS[d.id];
+    return `<tr>
+      <td class="c-check"><input type="checkbox" class="row-check"></td>
+      <td class="mono">${i + 1}</td>
+      <td>${driverSelect(i, d.id)}</td>
+      <td>${info ? esc(info.name) : '<span class="muted">未匹配</span>'}</td>
+      <td class="mono">${info ? esc(info.phone) : '—'}</td>
+      <td class="c-check"><input type="checkbox" ${d.primary ? 'checked' : ''} onchange="onDrvPrimary(${i}, this.checked)"></td>
+      <td class="muted mono">${d.linkedAt ? esc(d.linkedAt) : '待关联'}</td>
+    </tr>`;
+  }).join('') || `<tr><td colspan="7" class="empty">暂无司机，点击【新增行】选择司机后点击【关联】</td></tr>`;
+}
+function onDrvId(i, v){
+  draft.drivers[i].id = v;
+  draft.drivers[i].linkedAt = '';
+  formDirty = true; renderDrivers();
+}
+function onDrvPrimary(i, checked){
+  if (checked) draft.drivers.forEach((d, j) => { if (j !== i) d.primary = false; });
+  draft.drivers[i].primary = checked;
+  formDirty = true; renderDrivers();
+}
+function drvAdd(){
+  draft.drivers.push({ id:'', primary: !draft.drivers.some(d => d.primary), linkedAt:'' });
+  formDirty = true; renderDrivers();
+}
+function drvDel(){
+  const idx = $$('#drv-tbody .row-check').map((c, i) => c.checked ? i : -1).filter(i => i >= 0);
+  if (!idx.length) { toast('请先勾选要删除的司机行', 'error'); return; }
+  idx.sort((a, b) => b - a).forEach(i => draft.drivers.splice(i, 1));
+  formDirty = true; renderDrivers();
+}
+function linkDrivers(){
+  if (!draft.drivers.length) { toast('请先【新增行】选择司机', 'error'); return; }
+  const ids = draft.drivers.map(d => (d.id || '').trim());
+  if (ids.some(v => !v)) { toast('请选择完整的司机编码后再关联', 'error'); return; }
+  const unknown = ids.filter(v => !DRIVERS[v]);
+  if (unknown.length) { toast(`司机 ${unknown.join('、')} 不存在，请检查`, 'error'); return; }
+  const disabled = ids.filter(v => !DRIVERS[v].enabled);
+  if (disabled.length) { toast(`司机 ${disabled.join('、')} 未启用，不可关联（R-MD52）`, 'error'); return; }
+  if (new Set(ids).size !== ids.length) { toast('同一司机不可重复关联（R-MD52）', 'error'); return; }
+  if (draft.drivers.filter(d => d.primary).length > 1) { toast('同一车辆仅允许一名主驾（R-MD52）', 'error'); return; }
+  draft.drivers.forEach((d, i) => { d.id = ids[i]; if (!d.linkedAt) d.linkedAt = now(); });
+  formDirty = true; renderDrivers();
+  toast(`关联成功，本车已关联 ${draft.drivers.length} 名司机`, 'success');
+}
+
+/* ================= P3 详情 ================= */
+function openDetail(id){
+  currentDetailId = id;
+  const c = vehicles.find(x => x.id === id); if (!c) return;
+  const car = CARRIERS[c.carrier];
+  $('#p3-title').textContent = `车辆详情 · ${c.id} ${c.name}`;
+  $('#p3-tags').innerHTML =
+    (c.enabled ? '<span class="status green">启用</span>' : '<span class="status gray">停用</span>') +
+    (car && !car.enabled ? ' <span class="status yellow">承运商已停用</span>' : '') +
+    (c.referenced ? ' <span class="status yellow">已被业务单据引用</span>' : '');
+  $('#p3-base').innerHTML = [
+    ['车辆编码', `<span class="mono">${esc(c.id)}</span>`], ['车辆名称', esc(c.name)],
+    ['车辆类型', esc(c.type)], ['车辆识别代码（VIN）', `<span class="mono">${esc(c.vin)}</span>`],
+    ['发动机型号', c.engineModel ? esc(c.engineModel) : '—'],
+    ['发动机号', c.engineNo ? `<span class="mono">${esc(c.engineNo)}</span>` : '—'],
+    ['核定载质量', `<span class="mono">${Number(c.load).toLocaleString()} kg</span>`],
+    ['车身颜色', c.color ? esc(c.color) : '—'],
+    ['车牌号', `<span class="mono">${esc(c.plate)}</span>`],
+    ['GPS设备代码', c.gps ? `<span class="mono">${esc(c.gps)}</span>` : '—'],
+    ['承运商', `${esc(c.carrier)} ${car ? esc(car.name) : '—'}`],
+    ['是否启用', c.enabled ? '是' : '否'],
+    ['最后更新时间', `<span class="mono">${esc(c.updateTime)}</span>`]
+  ].map(([k, v]) => `<div class="detail-field"><span>${k}</span><strong>${v}</strong></div>`).join('');
+  $('#p3-drv').innerHTML = `<thead><tr><th>司机编码</th><th>司机名称</th><th>手机号码</th><th style="width:100px">是否主驾</th><th style="width:170px">关联时间</th></tr></thead><tbody>` +
+    (c.drivers.map(d => {
+      const info = DRIVERS[d.id];
+      return `<tr><td class="mono">${esc(d.id)}</td><td>${info ? esc(info.name) : '—'}</td>
+        <td class="mono">${info ? esc(info.phone) : '—'}</td>
+        <td>${d.primary ? '<span class="status green">主驾</span>' : '否'}</td>
+        <td class="muted mono">${d.linkedAt ? esc(d.linkedAt) : '—'}</td></tr>`;
+    }).join('') || `<tr><td colspan="5" class="empty">未关联司机</td></tr>`) + `</tbody>`;
+  switchScreen('p3');
+}
+function p3Edit(){ if (currentDetailId) openForm('edit', currentDetailId); }
+
+/* ================= 顶部页签切换 ================= */
+$$('.ptab').forEach(t => t.addEventListener('click', () => {
+  const k = t.dataset.k;
+  if (k === 'p2') { openForm(editingId ? 'edit' : 'new', editingId || undefined); return; }
+  if (k === 'p3') { openDetail(currentDetailId || vehicles[0].id); return; }
+  switchScreen(k);
+}));
+
+/* ================= 弹窗遮罩点击关闭 ================= */
+$$('.mask').forEach(m => m.addEventListener('click', e => {
+  if (e.target !== m) return;
+  if (m.id === 'dlg-p2') { cancelForm(); return; }
+  m.classList.add('hidden');
+}));
+
+/* ================= 初始化 ================= */
+renderList();
+</script>
+</body>
+</html>

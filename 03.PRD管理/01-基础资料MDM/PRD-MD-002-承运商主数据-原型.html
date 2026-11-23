@@ -1,0 +1,1096 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PRD-MD-002 承运商主数据 · 高保真交互原型</title>
+<style>
+  /* ============================================================
+     设计令牌 — 遵循《产品原型设计规范》通用视觉基线 V1.1
+     ============================================================ */
+  :root {
+    --bg: #f3f7f3; --panel: #ffffff; --sidebar-bg: #f8fbf8;
+    --ink: #1f2329; --sub: #646a73; --muted: #8f959e;
+    --line: #dee0e3; --line-soft: #eff0f1;
+    --brand: #009100; --brand-dark: #094828; --brand-weak: #e7f5e7; --brand-edge: #c8e2c8;
+    --red: #d83931; --red-weak: #fdebea;
+    --yellow: #d98300; --yellow-weak: #fff3d6;
+    --blue: #246bfd; --blue-weak: #eaf1ff;
+    --shadow: 0 8px 24px rgba(31, 35, 41, .08);
+    --radius: 8px; --radius-sm: 6px; --radius-pill: 999px;
+    --t-fast: .15s ease;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { color: var(--ink); background: var(--bg); line-height: 1.6;
+         font-family: "Microsoft YaHei", "PingFang SC", "Noto Sans SC", sans-serif; font-size: 12.5px; }
+  button, select, textarea, input { font: inherit; }
+  button { cursor: pointer; }
+  .hidden { display: none !important; }
+  .mono { font-family: "SF Mono", Consolas, monospace; font-size: 11.5px; }
+  .muted { color: var(--muted); }
+
+  /* ===== 原型导航条（文档信息 + 界面切换） ===== */
+  .proto-bar { position: sticky; top: 0; z-index: 200; display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+               padding: 8px 16px; color: #fff; background: linear-gradient(135deg, var(--brand-dark), #0b5c35); }
+  .proto-bar .pb-t { font-size: 13.5px; font-weight: 800; }
+  .proto-bar .pb-sub { font-size: 11px; color: #bfe3c6; }
+  .ptabs { display: flex; gap: 4px; margin-left: auto; flex-wrap: wrap; }
+  .ptab { border: 1px solid rgba(255,255,255,.25); background: rgba(255,255,255,.08); color: #e8f4ea;
+          border-radius: 15px; padding: 3px 12px; font-size: 12px; transition: all var(--t-fast); }
+  .ptab:hover { background: rgba(255,255,255,.18); }
+  .ptab.active { background: #fff; color: var(--brand-dark); font-weight: 700; border-color: #fff; }
+
+  /* ===== 平台框架：左侧菜单 + 顶栏 + 内容 ===== */
+  .app { display: flex; min-height: calc(100vh - 42px); }
+  .sidebar { width: 196px; flex-shrink: 0; background: var(--sidebar-bg); border-right: 1px solid var(--line);
+             padding: 12px 10px; position: sticky; top: 42px; height: calc(100vh - 42px); overflow-y: auto; }
+  .sb-brand { display: flex; gap: 8px; align-items: center; padding: 4px 6px 14px; }
+  .sb-mark { width: 28px; height: 28px; border-radius: var(--radius-sm); display: grid; place-items: center;
+             color: #fff; font-weight: 900; font-size: 11px; background: linear-gradient(135deg, var(--brand-dark), var(--brand)); }
+  .sb-brand strong { font-size: 13px; color: var(--brand-dark); }
+  .sb-group { color: var(--muted); font-size: 10.5px; padding: 10px 8px 4px; }
+  .sb-item { display: flex; align-items: center; gap: 8px; min-height: 30px; padding: 0 8px;
+             border-radius: var(--radius-sm); font-size: 12px; color: #3f464f; transition: all var(--t-fast); }
+  .sb-item:hover { background: var(--brand-weak); color: var(--brand-dark); }
+  .sb-item.active { background: var(--brand-weak); color: var(--brand-dark); font-weight: 700; }
+  .main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .topbar { height: 46px; background: rgba(255,255,255,.94); border-bottom: 1px solid var(--line);
+            display: flex; align-items: center; justify-content: space-between; padding: 0 16px; position: sticky; top: 42px; z-index: 90;
+            backdrop-filter: blur(10px); }
+  .crumb { font-size: 12.5px; color: var(--sub); }
+  .crumb b { color: var(--ink); }
+  .user-chip { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--sub); }
+  .user-chip .ava { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center;
+                    color: #fff; font-size: 11px; font-weight: 700; background: linear-gradient(135deg, var(--brand-dark), var(--brand)); }
+  .content { flex: 1; padding: 14px 16px 46px; min-width: 0; }
+
+  /* ===== 卡片 ===== */
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); margin-bottom: 12px; overflow: hidden; }
+  .card-h { padding: 12px 16px; border-bottom: 1px solid var(--line-soft); font-weight: 800; font-size: 13.5px;
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .card-b { padding: 14px 16px; }
+
+  /* ===== 按钮（规范基线） ===== */
+  .btn { min-height: 32px; padding: 0 12px; border: 1px solid var(--line); border-radius: var(--radius);
+         color: #2b2f36; background: #fff; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+         font-size: 13px; transition: all var(--t-fast); }
+  .btn:hover { border-color: #78bd78; color: var(--brand); }
+  .btn.primary { color: #fff; border-color: var(--brand); background: var(--brand); }
+  .btn.primary:hover { opacity: .9; }
+  .btn.danger { color: #fff; border-color: var(--red); background: var(--red); }
+  .btn.danger:hover { opacity: .9; }
+  .btn.sm { min-height: 28px; padding: 0 10px; font-size: 12px; border-radius: var(--radius-sm); }
+
+  /* ===== 表格（规范基线） ===== */
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th, td { padding: 9px 10px; border-bottom: 1px solid var(--line-soft); text-align: left; vertical-align: middle; }
+  th { color: var(--sub); background: #fafbfa; font-weight: 700; white-space: nowrap; }
+  tbody tr { transition: background var(--t-fast); }
+  tbody tr:hover { background: #f5faf5; }
+  tbody tr.selected { background: var(--brand-weak); }
+  .c-check { text-align: center; width: 38px; }
+  td.empty { text-align: center; color: var(--muted); padding: 26px 10px; }
+
+  /* ===== 状态胶囊 ===== */
+  .status { display: inline-flex; align-items: center; gap: 4px; border-radius: var(--radius-pill); padding: 2px 9px;
+            font-size: 11px; font-weight: 700; white-space: nowrap; }
+  .status.green { color: var(--brand); background: var(--brand-weak); }
+  .status.gray { color: #646a73; background: #f0f1f2; }
+  .status.blue { color: var(--blue); background: var(--blue-weak); }
+  .status.yellow { color: #9f6200; background: var(--yellow-weak); }
+  .status.red { color: var(--red); background: var(--red-weak); }
+
+  /* ===== 查询区 ===== */
+  .qgrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px 16px; }
+  .qitem { display: flex; align-items: center; gap: 8px; }
+  .qlabel { width: 92px; text-align: right; font-size: 12.5px; color: var(--sub); flex-shrink: 0; }
+  .qact { display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px; }
+
+  /* ===== 输入控件 ===== */
+  .txt, .sel { width: 100%; min-height: 32px; padding: 0 10px; border: 1px solid var(--line);
+               border-radius: var(--radius-sm); font-size: 12.5px; color: var(--ink); background: #fff; outline: none;
+               transition: border-color var(--t-fast); }
+  .txt:focus, .sel:focus { border-color: var(--brand); }
+  .txt:disabled { background: #f0f1f2; color: var(--muted); cursor: not-allowed; }
+  .ta { width: 100%; min-height: 64px; padding: 6px 10px; border: 1px solid var(--line); border-radius: var(--radius-sm);
+        font-size: 12.5px; color: var(--ink); background: #fff; outline: none; resize: vertical; transition: border-color var(--t-fast); }
+  .ta:focus { border-color: var(--brand); }
+  input[type="checkbox"], input[type="radio"] { accent-color: var(--brand); margin: 0; }
+  input[type="date"].txt { padding: 0 6px; }
+
+  /* ===== 工具栏 / 分页 ===== */
+  .toolbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--line-soft); }
+  .toolbar .sep { width: 1px; height: 18px; background: var(--line-soft); margin: 0 2px; }
+  .pager { display: flex; justify-content: space-between; align-items: center; padding: 10px 16px; color: var(--sub); font-size: 12px; flex-wrap: wrap; gap: 8px; }
+  .pg-btn { min-width: 24px; height: 24px; border: 1px solid var(--line); background: #fff; border-radius: 4px;
+            margin-left: 4px; font-size: 12px; color: var(--sub); }
+  .pg-btn.active { border-color: var(--brand); color: var(--brand); font-weight: 700; }
+  .pg-sel { min-height: 26px; padding: 0 6px; width: auto; }
+
+  /* ===== P2 表单弹窗（分区纵向折叠） ===== */
+  .modal.lg { width: 960px; max-width: 96vw; max-height: 86vh; display: flex; flex-direction: column; }
+  .modal.lg .modal-b { flex: 1; overflow-y: auto; padding: 12px 14px; }
+  .sec { border: 1px solid var(--line); border-radius: var(--radius); margin-bottom: 10px; background: #fff; overflow: hidden; }
+  .sec-h { display: flex; align-items: center; gap: 8px; padding: 10px 14px; background: #f8fbf8;
+           font-weight: 800; font-size: 13px; cursor: pointer; user-select: none; transition: background var(--t-fast); }
+  .sec-h:hover { background: var(--brand-weak); }
+  .sec-h .arrow { font-size: 10px; color: var(--brand); transition: transform var(--t-fast); display: inline-block; }
+  .sec.closed .arrow { transform: rotate(-90deg); }
+  .sec-h .cnt { margin-left: auto; font-size: 11px; color: var(--muted); font-weight: 400; }
+  .sec-b { padding: 14px 16px; border-top: 1px solid var(--line-soft); }
+  .sec.closed .sec-b { display: none; }
+  .fgrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 28px; }
+  .fitem { display: flex; align-items: flex-start; }
+  .flabel { width: 128px; text-align: right; padding-right: 10px; color: var(--sub); font-size: 12.5px;
+            flex-shrink: 0; line-height: 32px; }
+  .flabel .req { color: var(--red); margin-right: 2px; }
+  .fctrl { flex: 1; min-width: 0; }
+  .span2 { grid-column: 1 / -1; }
+  .hint { font-size: 11.5px; color: var(--muted); margin-top: 3px; line-height: 1.5; }
+  .radio { display: inline-flex; align-items: center; gap: 5px; margin-right: 16px; line-height: 32px; cursor: pointer; font-size: 12.5px; color: var(--ink); }
+  .form-f { padding: 12px 16px; border-top: 1px solid var(--line); display: flex; justify-content: flex-end; gap: 8px; background: #fbfdfb; }
+  .sub-tb-bar { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; flex-wrap: wrap; }
+  .sub-tb-bar .hint { margin: 0 0 0 auto; }
+
+  /* ===== P3 详情页 ===== */
+  .dcard { border: 1px solid var(--line); border-radius: var(--radius); margin-bottom: 12px; overflow: hidden; }
+  .dcard-t { padding: 10px 14px; background: #f8fbf8; border-bottom: 1px solid var(--line-soft);
+             font-weight: 800; font-size: 13px; display: flex; gap: 8px; align-items: center; }
+  .dcard-b { padding: 14px; }
+  .detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .detail-field { padding: 10px 12px; border: 1px solid var(--line-soft); border-radius: var(--radius-sm); background: #fbfdfb; }
+  .detail-field span { display: block; color: var(--muted); font-size: 11px; }
+  .detail-field strong { display: block; margin-top: 4px; font-size: 13px; font-weight: 700; color: var(--ink); word-break: break-all; }
+  .detail-field .rule { font-size: 10.5px; color: var(--muted); font-weight: 400; font-family: "SF Mono", Consolas, monospace; }
+  .empty-box { border: 1px dashed var(--line); border-radius: var(--radius); padding: 20px; text-align: center;
+               color: var(--muted); font-size: 12px; background: #fbfdfb; }
+
+  /* ===== 弹窗 ===== */
+  .mask { position: fixed; inset: 0; background: rgba(31, 35, 41, .38); display: flex; align-items: flex-start;
+          justify-content: center; padding-top: 12vh; z-index: 100; }
+  .modal { width: 500px; max-width: 92vw; background: #fff; border-radius: var(--radius); box-shadow: var(--shadow);
+           animation: pop .18s ease; }
+  @keyframes pop { from { transform: scale(.95); opacity: 0; } }
+  .modal-h { padding: 13px 18px; font-weight: 800; font-size: 14px; border-bottom: 1px solid var(--line-soft);
+             display: flex; justify-content: space-between; align-items: center; }
+  .dlg-tag { font-size: 11px; font-weight: 700; font-family: "SF Mono", Consolas, monospace;
+             background: var(--brand-weak); color: var(--brand-dark); border-radius: 4px; padding: 2px 8px; }
+  .modal-x { border: 0; background: none; color: var(--muted); font-size: 15px; }
+  .modal-x:hover { color: var(--ink); }
+  .modal-b { padding: 18px; font-size: 12.5px; color: var(--sub); line-height: 1.8; }
+  .modal-f { padding: 12px 18px; border-top: 1px solid var(--line-soft); display: flex; justify-content: flex-end; gap: 8px; }
+  .modal-warn { display: flex; gap: 12px; align-items: flex-start; }
+  .warn-ic { width: 26px; height: 26px; border-radius: 50%; background: var(--yellow-weak); color: var(--yellow);
+             font-weight: 900; display: grid; place-items: center; flex-shrink: 0; font-size: 15px; }
+  .warn-ic.red { background: var(--red-weak); color: var(--red); }
+  .result-box { margin-top: 12px; background: var(--yellow-weak); border: 1px solid #f0d9a8; border-radius: var(--radius-sm); padding: 10px 12px; }
+  .result-box a { color: var(--blue); }
+  .upl-line { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-bottom: 1px dashed var(--line-soft); font-size: 12px; }
+  .upl-line:last-child { border-bottom: 0; }
+
+  /* ===== Toast ===== */
+  #toast { position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%); z-index: 300;
+           display: flex; flex-direction: column; gap: 8px; align-items: center; }
+  .toast-item { padding: 9px 16px; border-radius: var(--radius); color: #fff; font-size: 12.5px;
+                box-shadow: var(--shadow); animation: tin .2s ease; max-width: 80vw; }
+  @keyframes tin { from { opacity: 0; transform: translateY(8px); } }
+  .toast-info { background: #25282e; }
+  .toast-success { background: var(--brand); }
+  .toast-error { background: var(--red); }
+  .toast-warn { background: var(--yellow); }
+
+  /* ===== P9 关系图 ===== */
+  .p9-svg { width: 100%; height: auto; display: block; min-width: 900px; }
+  .p9-wrap { overflow-x: auto; }
+  .note-strip { border: 1px solid var(--brand-edge); background: #f6fbf6; border-radius: var(--radius);
+                padding: 10px 14px; font-size: 12px; color: var(--sub); line-height: 1.8; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════ 原型导航条 ═══════════ -->
+<div class="proto-bar">
+  <div>
+    <div class="pb-t">PRD-MD-002 承运商主数据 · 高保真交互原型</div>
+    <div class="pb-sub">基础资料 MDM · 贸易伙伴-承运商 · V1.1（草稿） · 依据 3.1 原型规划实现 P1/P2/P3/P9 + D1~D6，按钮 B01~B23 与业务规则 R-MD18~R-MD26 可交互体验</div>
+  </div>
+  <div class="ptabs">
+    <button class="ptab active" data-k="p1">P1 承运商列表</button>
+    <button class="ptab" data-k="p2">P2 表单弹窗</button>
+    <button class="ptab" data-k="p3">P3 承运商详情</button>
+    <button class="ptab" data-k="p9">P9 按钮关系总览</button>
+  </div>
+</div>
+
+<div class="app">
+  <!-- ═══════════ 左侧菜单 ═══════════ -->
+  <aside class="sidebar">
+    <div class="sb-brand"><div class="sb-mark">OT</div><strong>OTWB 平台</strong></div>
+    <div class="sb-group">基础资料</div>
+    <div class="sb-item">🗂 客户</div>
+    <div class="sb-item active">🚚 承运商</div>
+    <div class="sb-item">📦 物料</div>
+    <div class="sb-item">📍 地址</div>
+    <div class="sb-group">订单管理 OMS</div>
+    <div class="sb-item">📄 销售订单</div>
+    <div class="sb-item">🚛 发货订单</div>
+    <div class="sb-group">运输管理 TMS</div>
+    <div class="sb-item">🧾 运单</div>
+    <div class="sb-item">🚧 配载计划</div>
+    <div class="sb-group">结算管理 BMS</div>
+    <div class="sb-item">💰 应付凭证</div>
+    <div class="sb-item">📊 对账单</div>
+    <div class="sb-group">系统管理</div>
+    <div class="sb-item">👤 用户与角色</div>
+  </aside>
+
+  <!-- ═══════════ 主区域 ═══════════ -->
+  <main class="main">
+    <div class="topbar">
+      <div class="crumb">基础资料 / 贸易伙伴 / <b>承运商</b></div>
+      <div class="user-chip"><div class="ava">张</div>主数据管理员 · 张三</div>
+    </div>
+
+    <div class="content">
+
+      <!-- ═══════════ P1 承运商列表 ═══════════ -->
+      <section id="screen-p1">
+        <div class="card">
+          <div class="card-h">查询条件</div>
+          <div class="card-b">
+            <div class="qgrid">
+              <div class="qitem"><div class="qlabel">承运商编码</div><input class="txt" id="q-code" placeholder="支持模糊匹配"></div>
+              <div class="qitem"><div class="qlabel">承运商名称</div><input class="txt" id="q-name" placeholder="支持模糊匹配（含简称）"></div>
+              <div class="qitem"><div class="qlabel">承运商类型</div>
+                <select class="sel" id="q-type"><option>全部</option><option>快递</option><option>专线</option><option>车队</option><option>个体</option></select></div>
+              <div class="qitem"><div class="qlabel">是否启用</div>
+                <select class="sel" id="q-enabled"><option>全部</option><option>是</option><option>否</option></select></div>
+              <div class="qitem"><div class="qlabel">创建时间</div>
+                <div style="display:flex;align-items:center;gap:6px;flex:1">
+                  <input class="txt" type="date" id="q-date1">
+                  <span class="muted">~</span>
+                  <input class="txt" type="date" id="q-date2">
+                </div></div>
+            </div>
+            <div class="qact">
+              <button class="btn primary" onclick="renderList()">查 询</button>
+              <button class="btn" onclick="resetQuery()">重 置</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-h">承运商列表 <span class="muted" style="font-weight:400;font-size:11px">P1 主界面</span></div>
+          <div class="toolbar">
+            <button class="btn primary" onclick="tb('add')">＋ 新增</button>
+            <button class="btn" onclick="tb('edit')">编辑</button>
+            <button class="btn" onclick="tb('delete')">删除</button>
+            <span class="sep"></span>
+            <button class="btn" onclick="tb('view')">查看详情</button>
+            <span class="sep"></span>
+            <button class="btn" onclick="tb('enable')">启用</button>
+            <button class="btn" onclick="tb('disable')">停用</button>
+            <span class="sep"></span>
+            <button class="btn" onclick="tb('sync')">分仓同步</button>
+            <span class="sep"></span>
+            <button class="btn" onclick="tb('batchupload')">批量附件上传</button>
+            <button class="btn" onclick="tb('batchdownload')">批量附件下载</button>
+            <span class="sep"></span>
+            <button class="btn" onclick="tb('import')">导入</button>
+            <button class="btn" onclick="tb('export')">导出</button>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th class="c-check"><input type="checkbox" id="ck-all"></th>
+                <th>承运商编码</th><th>承运商名称</th><th>承运商简称</th><th>承运商类型</th><th>是否启用</th>
+                <th>结算方式</th><th>授权租户</th><th>最后更新时间</th>
+              </tr>
+            </thead>
+            <tbody id="p1-tbody"></tbody>
+          </table>
+          <div class="pager">
+            <span>共 <b id="p1-count">0</b> 条，已勾选 <b id="p1-selcount">0</b> 条</span>
+            <span>
+              <select class="sel pg-sel"><option>10 条/页</option><option>20 条/页</option><option>50 条/页</option></select>
+              <button class="pg-btn">‹</button><button class="pg-btn active">1</button><button class="pg-btn">›</button>
+            </span>
+          </div>
+        </div>
+      </section>
+      <!-- ═══════════ P2 新增/编辑承运商（弹窗表单 · 分区折叠） ═══════════ -->
+      <div class="mask hidden" id="dlg-p2" style="padding-top:5vh">
+        <div class="modal lg">
+          <div class="modal-h"><span id="p2-title">新增承运商</span>
+            <span class="dlg-tag" id="p2-tag">P2 新增模式</span>
+            <span style="flex:1"></span>
+            <span class="muted" style="font-weight:400;font-size:11px;margin-right:10px">分区纵向展示 · 点击标题栏折叠/展开</span>
+            <button class="modal-x" onclick="cancelForm()">✕</button>
+          </div>
+          <div class="modal-b">
+
+          <!-- 分区1 基本信息 -->
+          <div class="sec">
+            <div class="sec-h" onclick="toggleSec(this)"><span class="arrow">▼</span>基本信息<span class="cnt">必填：承运商编码、承运商名称、承运商类型</span></div>
+            <div class="sec-b">
+            <div class="fgrid">
+              <div class="fitem"><div class="flabel"><span class="req">*</span>承运商编码</div>
+                <div class="fctrl"><input class="txt mono" id="f-code" maxlength="30" placeholder="仅字母、数字、-、_" oninput="markDirty()">
+                <div class="hint">承运商唯一编码，手工录入；域内唯一（R-MD18），保存后不可修改</div></div></div>
+              <div class="fitem"><div class="flabel"><span class="req">*</span>承运商名称</div>
+                <div class="fctrl"><input class="txt" id="f-name" maxlength="120" oninput="markDirty()"><div class="hint">承运商全称</div></div></div>
+              <div class="fitem"><div class="flabel">承运商简称</div>
+                <div class="fctrl"><input class="txt" id="f-short" maxlength="60" oninput="markDirty()">
+                <div class="hint">便于快速识别，列表与单据下拉可优先展示</div></div></div>
+              <div class="fitem"><div class="flabel"><span class="req">*</span>承运商类型</div>
+                <div class="fctrl"><select class="sel" id="f-type" onchange="onTypeChange()">
+                  <option value="">请选择</option><option>快递</option><option>专线</option><option>车队</option><option>个体</option></select>
+                  <div class="hint">数据字典：承运商类型（字典值可自定义维护）；选择"快递"时显示【集成快递接口配置】分区（R-MD20）</div></div></div>
+              <div class="fitem"><div class="flabel"><span class="req">*</span>是否启用</div>
+                <div class="fctrl">
+                  <label class="radio"><input type="radio" name="f-enabled" value="是" checked onchange="markDirty()">是</label>
+                  <label class="radio"><input type="radio" name="f-enabled" value="否" onchange="markDirty()">否</label>
+                  <div class="hint">启用后可在配载、费率合同、指派规则等处选择（R-MD19）；历史单据不受影响</div></div></div>
+              <div class="fitem span2"><div class="flabel">承运商描述</div>
+                <div class="fctrl"><textarea class="ta" id="f-desc" maxlength="500" oninput="markDirty()" placeholder="承运商补充描述信息"></textarea></div></div>
+            </div>
+            </div>
+          </div>
+
+          <!-- 分区2 结算信息 -->
+          <div class="sec">
+            <div class="sec-h" onclick="toggleSec(this)"><span class="arrow">▼</span>结算信息<span class="cnt">供应付对账单与付款引用（R-MD22）</span></div>
+            <div class="sec-b">
+            <div class="fgrid">
+              <div class="fitem"><div class="flabel">开户银行</div>
+                <div class="fctrl"><input class="txt" id="f-bank" maxlength="120" oninput="markDirty()">
+                <div class="hint">承运商收款开户银行，供应付付款单引用（R-MD22）</div></div></div>
+              <div class="fitem"><div class="flabel">银行账户</div>
+                <div class="fctrl"><input class="txt mono" id="f-account" maxlength="30" oninput="markDirty()">
+                <div class="hint">银行账号，供应付付款单引用（R-MD22）</div></div></div>
+              <div class="fitem"><div class="flabel">结算方式</div>
+                <div class="fctrl"><select class="sel" id="f-method" onchange="markDirty()">
+                  <option>月结</option><option>季结</option><option>预付</option><option>票结</option></select>
+                  <div class="hint">数据字典：结算方式；创建应付对账单时带出（R-MD22）</div></div></div>
+            </div>
+            </div>
+          </div>
+
+          <!-- 分区3 集成快递接口配置（仅承运商类型=快递时显示，R-MD20） -->
+          <div class="sec hidden" id="sec-express">
+            <div class="sec-h" onclick="toggleSec(this)"><span class="arrow">▼</span>集成快递接口配置<span class="cnt">仅承运商类型=快递时显示（R-MD20）</span></div>
+            <div class="sec-b">
+            <div class="fgrid">
+              <div class="fitem"><div class="flabel">接口类型</div>
+                <div class="fctrl"><select class="sel" id="f-api" onchange="markDirty()">
+                  <option>无</option><option>华通快递</option><option>驿达开放平台</option><option>顺捷快递</option><option>京驿快递</option></select>
+                  <div class="hint">数据字典：快递接口类型；维护后该承运商运单可获取面单与路由跟踪（R-MD20）</div></div></div>
+              <div class="fitem span2"><div class="flabel">扩展参数</div>
+                <div class="fctrl"><textarea class="ta mono" id="f-ext" placeholder='如 {"customer":"HT2026","secret":"******"}' oninput="markDirty()"></textarea>
+                <div class="hint">JSON 格式；接口类型≠无时必填且需校验有效；切换为非快递类型时本分区隐藏，已维护配置保留但不再生效（R-MD20）</div></div></div>
+            </div>
+            </div>
+          </div>
+
+          <!-- 分区4 授权租户 -->
+          <div class="sec">
+            <div class="sec-h" onclick="toggleSec(this)"><span class="arrow">▼</span>授权租户<span class="cnt" id="sec-tenant-cnt">未授权</span></div>
+            <div class="sec-b">
+            <div class="fitem">
+              <div class="flabel">租户ID</div>
+              <div class="fctrl" style="display:flex;gap:8px;max-width:440px">
+                <input class="txt mono" id="f-tenant" maxlength="30" placeholder="如 T-20001" oninput="markDirty()">
+                <button class="btn primary" onclick="linkTenant()">关 联</button>
+              </div>
+            </div>
+            <div class="hint" style="margin:6px 0 0 138px">一个承运商仅可授权关联一个启用状态的协同租户（R-MD21）；关联后可将订单委托给该第三方物流运输；输入租户ID后点击【关联】校验并保存</div>
+            <div id="tenant-card" style="margin-top:14px"></div>
+            </div>
+          </div>
+
+          <!-- 分区5 合同附件 -->
+          <div class="sec">
+            <div class="sec-h" onclick="toggleSec(this)"><span class="arrow">▼</span>合同附件<span class="cnt" id="sec-att-cnt">0 个</span></div>
+            <div class="sec-b">
+            <div class="sub-tb-bar">
+              <span class="hint">合同附件通过列表【批量附件上传】按命名规则批量上传（R-MD25）：承运商编码+文件名.文件类型 或 承运商编码(文件名).文件类型</span>
+            </div>
+            <table>
+              <thead><tr>
+                <th style="width:44px">序号</th><th>文件名</th><th style="width:110px">上传人</th><th style="width:170px">上传时间</th>
+              </tr></thead>
+              <tbody id="att-tbody"></tbody>
+            </table>
+            </div>
+          </div>
+
+          </div><!-- /modal-b -->
+          <div class="modal-f">
+            <button class="btn" onclick="cancelForm()">取 消</button>
+            <button class="btn primary" onclick="saveForm()">保 存</button>
+          </div>
+        </div>
+      </div>
+      <!-- ═══════════ P3 承运商详情 ═══════════ -->
+      <section id="screen-p3" class="hidden">
+        <div class="card">
+          <div class="card-h">
+            <span id="p3-title">承运商详情</span>
+            <span id="p3-tags"></span>
+            <span style="flex:1"></span>
+            <button class="btn primary sm" onclick="p3Edit()">编 辑</button>
+            <button class="btn sm" onclick="switchScreen('p1')">返 回</button>
+          </div>
+          <div class="card-b">
+            <div class="dcard">
+              <div class="dcard-t">基本信息</div>
+              <div class="dcard-b"><div class="detail-grid" id="p3-base"></div></div>
+            </div>
+            <div class="dcard">
+              <div class="dcard-t">结算信息</div>
+              <div class="dcard-b"><div class="detail-grid" id="p3-settle"></div></div>
+            </div>
+            <div class="dcard" id="p3-express-card">
+              <div class="dcard-t">集成快递接口配置<span class="muted" style="font-weight:400;font-size:11px">仅承运商类型=快递时展示（R-MD20）</span></div>
+              <div class="dcard-b"><div class="detail-grid" id="p3-express"></div></div>
+            </div>
+            <div class="dcard">
+              <div class="dcard-t">授权租户</div>
+              <div class="dcard-b" id="p3-tenant"></div>
+            </div>
+            <div class="dcard">
+              <div class="dcard-t">合同附件</div>
+              <div class="dcard-b" style="padding:0"><table id="p3-att"></table></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════════ P9 按钮—弹窗关系总览 ═══════════ -->
+      <section id="screen-p9" class="hidden">
+        <div class="card">
+          <div class="card-h">P9 按钮—弹窗/页面跳转关系总览
+            <span class="muted" style="font-weight:400;font-size:11px">对应 3.1.1 按钮—弹窗/页面映射表</span></div>
+          <div class="card-b p9-wrap">
+            <svg class="p9-svg" viewBox="0 0 1120 670" xmlns="http://www.w3.org/2000/svg" font-family="Microsoft YaHei, sans-serif">
+              <defs>
+                <marker id="ah" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+                  <path d="M0,0 L9,4.5 L0,9 z" fill="#009100"/>
+                </marker>
+              </defs>
+
+              <!-- P1 主界面 -->
+              <rect x="30" y="70" width="330" height="450" rx="10" fill="#ffffff" stroke="#dee0e3"/>
+              <text x="50" y="102" font-size="15" font-weight="800" fill="#1f2329">P1 承运商列表（主界面）</text>
+              <text x="50" y="122" font-size="11" fill="#8f959e">查询条件区 + 工具栏 + 列表 + 分页</text>
+              <line x1="30" y1="136" x2="360" y2="136" stroke="#eff0f1"/>
+
+              <!-- 按钮行 -->
+              <g font-size="12" text-anchor="middle">
+                <rect x="50" y="157" width="150" height="26" rx="5" fill="#f0f7ee" stroke="#9ecf9e"/><text x="125" y="174" fill="#094828" font-weight="700">新增 B01</text>
+                <rect x="50" y="187" width="150" height="26" rx="5" fill="#f0f7ee" stroke="#9ecf9e"/><text x="125" y="204" fill="#094828" font-weight="700">编辑 B02</text>
+                <rect x="50" y="217" width="150" height="26" rx="5" fill="#f0f7ee" stroke="#9ecf9e"/><text x="125" y="234" fill="#094828" font-weight="700">查看详情 B04</text>
+                <rect x="50" y="247" width="150" height="26" rx="5" fill="#f0f7ee" stroke="#9ecf9e"/><text x="125" y="264" fill="#094828" font-weight="700">删除 B03</text>
+                <rect x="50" y="277" width="150" height="26" rx="5" fill="#f2f3f5" stroke="#dcdfe6"/><text x="125" y="294" fill="#8f959e" font-weight="700">启用 B07</text>
+                <rect x="50" y="307" width="150" height="26" rx="5" fill="#f0f7ee" stroke="#9ecf9e"/><text x="125" y="324" fill="#094828" font-weight="700">停用 B08</text>
+                <rect x="50" y="337" width="150" height="26" rx="5" fill="#f0f7ee" stroke="#9ecf9e"/><text x="125" y="354" fill="#094828" font-weight="700">分仓同步 B09</text>
+                <rect x="50" y="367" width="150" height="26" rx="5" fill="#f0f7ee" stroke="#9ecf9e"/><text x="125" y="384" fill="#094828" font-weight="700">批量附件上传 B10</text>
+                <rect x="50" y="397" width="150" height="26" rx="5" fill="#f2f3f5" stroke="#dcdfe6"/><text x="125" y="414" fill="#8f959e" font-weight="700">批量附件下载 B11</text>
+                <rect x="50" y="427" width="150" height="26" rx="5" fill="#f0f7ee" stroke="#9ecf9e"/><text x="125" y="444" fill="#094828" font-weight="700">导入 B05</text>
+                <rect x="50" y="457" width="150" height="26" rx="5" fill="#f0f7ee" stroke="#9ecf9e"/><text x="125" y="474" fill="#094828" font-weight="700">导出 B06</text>
+              </g>
+              <text x="210" y="294" font-size="11.5" fill="#8f959e">直接执行，无弹窗</text>
+              <text x="210" y="414" font-size="11.5" fill="#8f959e">直接执行，无弹窗</text>
+
+              <!-- P2 / P3 -->
+              <rect x="720" y="36" width="370" height="78" rx="10" fill="#fff8e6" stroke="#e6c069"/>
+              <text x="740" y="64" font-size="14" font-weight="800" fill="#1f2329">P2 新增/编辑承运商（弹窗表单）</text>
+              <text x="740" y="88" font-size="11" fill="#646a73">折叠区：基本信息 / 结算信息 / 集成快递接口配置（快递时显示）/ 授权租户 / 合同附件</text>
+              <text x="1070" y="64" font-size="11" fill="#8f959e" text-anchor="end">← 新增 B01 / 编辑 B02</text>
+
+              <rect x="720" y="132" width="370" height="62" rx="10" fill="#f0f7ee" stroke="#79b879"/>
+              <text x="740" y="157" font-size="14" font-weight="800" fill="#094828">P3 承运商详情（只读页）</text>
+              <text x="740" y="178" font-size="11" fill="#646a73">分组卡片展示全部字段</text>
+
+              <!-- D1~D6 -->
+              <g font-size="13">
+                <rect x="720" y="212" width="370" height="48" rx="8" fill="#fff8e6" stroke="#e6c069"/>
+                <text x="740" y="241" font-weight="800" fill="#1f2329">D1 删除确认框</text>
+                <rect x="720" y="272" width="370" height="48" rx="8" fill="#fff8e6" stroke="#e6c069"/>
+                <text x="740" y="301" font-weight="800" fill="#1f2329">D2 停用确认框</text>
+                <rect x="720" y="332" width="370" height="48" rx="8" fill="#fff8e6" stroke="#e6c069"/>
+                <text x="740" y="361" font-weight="800" fill="#1f2329">D3 分仓同步确认框</text>
+                <rect x="720" y="392" width="370" height="48" rx="8" fill="#fff8e6" stroke="#e6c069"/>
+                <text x="740" y="421" font-weight="800" fill="#1f2329">D6 批量附件上传弹窗</text>
+                <rect x="720" y="452" width="370" height="48" rx="8" fill="#fff8e6" stroke="#e6c069"/>
+                <text x="740" y="481" font-weight="800" fill="#1f2329">D4 导入弹窗</text>
+                <rect x="720" y="512" width="370" height="48" rx="8" fill="#fff8e6" stroke="#e6c069"/>
+                <text x="740" y="541" font-weight="800" fill="#1f2329">D5 导出弹窗</text>
+              </g>
+              <g font-size="11" fill="#8f959e" text-anchor="end">
+                <text x="1070" y="241">← 删除 B03</text>
+                <text x="1070" y="301">← 停用 B08</text>
+                <text x="1070" y="361">← 分仓同步 B09</text>
+                <text x="1070" y="421">← 批量附件上传 B10</text>
+                <text x="1070" y="481">← 导入 B05</text>
+                <text x="1070" y="541">← 导出 B06</text>
+              </g>
+
+              <!-- 虚线箭头（与按钮行 y 对齐） -->
+              <g fill="none" stroke="#009100" stroke-width="1.6" stroke-dasharray="6 4" marker-end="url(#ah)">
+                <path d="M200 170 C 480 170, 520 75, 714 75"/>
+                <path d="M200 200 C 480 200, 520 90, 714 90"/>
+                <path d="M200 230 C 480 230, 520 163, 714 163"/>
+                <path d="M200 260 C 480 260, 520 236, 714 236"/>
+                <path d="M200 320 C 480 320, 520 296, 714 296"/>
+                <path d="M200 350 C 480 350, 520 356, 714 356"/>
+                <path d="M200 380 C 480 380, 520 416, 714 416"/>
+                <path d="M200 440 C 480 440, 520 476, 714 476"/>
+                <path d="M200 470 C 480 470, 520 536, 714 536"/>
+              </g>
+
+              <!-- 底部说明 -->
+              <rect x="30" y="580" width="1060" height="74" rx="8" fill="#f7f9fc" stroke="#dee0e3"/>
+              <line x1="50" y1="609" x2="88" y2="609" stroke="#009100" stroke-width="1.6" stroke-dasharray="6 4"/>
+              <text x="96" y="613" font-size="11.5" fill="#646a73">虚线箭头 = 单击按钮后打开目标弹窗/页面（本原型中均可实际点击体验）</text>
+              <text x="50" y="638" font-size="11.5" fill="#646a73">直接执行、无弹窗的按钮：P1【启用 B07】【批量附件下载 B11】；P2【保存 B12 / 取消 B13 / 关联 B14】；P3【编辑 B15 / 返回 B16】；弹窗内【确认 B17~B19】【下载模板 B20】【上传附件 B21】【导出 B22】【批量上传 B23】</text>
+            </svg>
+          </div>
+        </div>
+        <div class="note-strip">
+          <b>体验路径：</b>P1 勾选记录后点击工具栏按钮触发对应弹窗，点击列表中的承运商编码可直接打开 P3 详情；【新增/编辑】弹出 P2 表单弹窗（分区纵向展示，点击分区标题栏可折叠/展开），承运商类型选择"快递"时显示【集成快递接口配置】分区（R-MD20），保存校验依据 R-MD18（承运商编码唯一）。规则演示数据：CY-10001/CY-10002/CY-10004/CY-10005/CY-10008 已被业务单据引用（删除时触发 R-MD23）；CY-10001 已授权租户 T-20001、CY-10005 已授权 T-20002，租户 T-20003 为停用状态（关联时触发 R-MD21 提示）；CY-10001/CY-10006 已维护快递接口（扩展参数 JSON 校验演示 R-MD20）；D6 中预置 2 个合法文件名与 2 个非法文件名（触发 R-MD25 命名校验）。
+        </div>
+      </section>
+
+    </div>
+  </main>
+</div>
+<!-- ═══════════ D1 删除确认框 ═══════════ -->
+<div class="mask hidden" id="dlg-d1">
+  <div class="modal">
+    <div class="modal-h">删除确认 <span class="dlg-tag">D1 · B17</span>
+      <button class="modal-x" onclick="closeModal('dlg-d1')">✕</button></div>
+    <div class="modal-b"><div class="modal-warn">
+      <div class="warn-ic red">!</div>
+      <div>确认删除选中的 <b id="d1-count">0</b> 条承运商记录？<br>
+        <span style="color:var(--muted);font-size:11.5px">承运商未被任何业务单据（发货订单/运单/凭证/对账单/费率合同）引用且未被授权给用户时方可删除，否则仅可停用（R-MD23）；删除为逻辑删除，保留档案供历史单据追溯。</span>
+        <div id="d1-ids" class="mono" style="margin-top:6px;color:var(--muted)"></div>
+      </div></div></div>
+    <div class="modal-f">
+      <button class="btn" onclick="closeModal('dlg-d1')">取消</button>
+      <button class="btn danger" onclick="doDelete()">确 认</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ D2 停用确认框 ═══════════ -->
+<div class="mask hidden" id="dlg-d2">
+  <div class="modal">
+    <div class="modal-h">停用确认 <span class="dlg-tag">D2 · B18</span>
+      <button class="modal-x" onclick="closeModal('dlg-d2')">✕</button></div>
+    <div class="modal-b"><div class="modal-warn">
+      <div class="warn-ic">!</div>
+      <div>确认停用选中的 <b id="d2-count">0</b> 条承运商记录？<br>
+        <span style="color:var(--muted);font-size:11.5px">停用后"是否启用"更新为"否"，配载、费率合同、指派规则等新建单据不可选择该承运商（R-MD19），历史单据不受影响。</span>
+        <div id="d2-ids" class="mono" style="margin-top:6px;color:var(--muted)"></div>
+      </div></div></div>
+    <div class="modal-f">
+      <button class="btn" onclick="closeModal('dlg-d2')">取消</button>
+      <button class="btn primary" onclick="doDisable()">确 认</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ D3 分仓同步确认框 ═══════════ -->
+<div class="mask hidden" id="dlg-d3">
+  <div class="modal">
+    <div class="modal-h">分仓同步确认 <span class="dlg-tag">D3 · B19</span>
+      <button class="modal-x" onclick="closeModal('dlg-d3')">✕</button></div>
+    <div class="modal-b"><div class="modal-warn">
+      <div class="warn-ic">!</div>
+      <div>确认将选中的 <b id="d3-count">0</b> 条承运商记录同步至外部仓储系统分仓？<br>
+        <span style="color:var(--muted);font-size:11.5px">承运商新建保存后，需执行分仓同步才在外部仓储系统分仓显示（R-MD26）。</span>
+        <div id="d3-ids" class="mono" style="margin-top:6px;color:var(--muted)"></div>
+      </div></div></div>
+    <div class="modal-f">
+      <button class="btn" onclick="closeModal('dlg-d3')">取消</button>
+      <button class="btn primary" onclick="doSync()">确 认</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ D4 导入弹窗 ═══════════ -->
+<div class="mask hidden" id="dlg-d4">
+  <div class="modal">
+    <div class="modal-h">导入承运商 <span class="dlg-tag">D4 · B20/B21</span>
+      <button class="modal-x" onclick="closeModal('dlg-d4')">✕</button></div>
+    <div class="modal-b">
+      <div class="fitem"><div class="flabel" style="width:80px">导入模式</div>
+        <div class="fctrl">
+          <label class="radio"><input type="radio" name="d4-mode" value="新增" checked>新增</label>
+          <label class="radio"><input type="radio" name="d4-mode" value="更新">更新</label>
+          <div class="hint" style="line-height:32px">新增模式要求承运商编码唯一（R-MD18）；更新模式按承运商编码匹配覆盖</div></div></div>
+      <div class="fitem" style="margin-top:12px"><div class="flabel" style="width:80px">模板文件</div>
+        <div class="fctrl"><button class="btn sm" onclick="toast('承运商导入模板下载中…','info')">⬇ 下载模板</button></div></div>
+      <div class="fitem" style="margin-top:12px"><div class="flabel" style="width:80px">选择文件</div>
+        <div class="fctrl"><input type="file" id="d4-file" class="txt" style="padding:5px 8px" accept=".xlsx,.xls"></div></div>
+      <div id="d4-result" class="result-box hidden">
+        导入完成：成功 <b style="color:var(--brand)">8</b> 行，失败 <b style="color:var(--red)">2</b> 行。
+        <a href="javascript:;" onclick="toast('错误明细文件下载中…','info')">下载错误明细</a>
+        <div class="hint">校验失败行不入库，错误文件注明原因，修改后可重新导入（R-MD18）；承运商账户仅可导入自身承运商编码的数据（R-MD24）</div>
+      </div>
+    </div>
+    <div class="modal-f">
+      <button class="btn" onclick="closeModal('dlg-d4')">取消</button>
+      <button class="btn primary" onclick="doImport()">上传附件</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ D5 导出弹窗 ═══════════ -->
+<div class="mask hidden" id="dlg-d5">
+  <div class="modal">
+    <div class="modal-h">导出承运商 <span class="dlg-tag">D5 · B22</span>
+      <button class="modal-x" onclick="closeModal('dlg-d5')">✕</button></div>
+    <div class="modal-b">
+      <div class="fitem"><div class="flabel" style="width:80px">导出范围</div>
+        <div class="fctrl">
+          <label class="radio"><input type="radio" name="d5-scope" value="sel" checked>当前勾选的 <b id="d5-cnt">0</b> 条记录</label><br>
+          <label class="radio"><input type="radio" name="d5-scope" value="query">按当前查询条件（共 <b id="d5-qcnt">0</b> 条）</label><br>
+          <label class="radio"><input type="radio" name="d5-scope" value="all">全部承运商</label>
+        </div></div>
+    </div>
+    <div class="modal-f">
+      <button class="btn" onclick="closeModal('dlg-d5')">取消</button>
+      <button class="btn primary" onclick="doExport()">导 出</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ D6 批量附件上传弹窗 ═══════════ -->
+<div class="mask hidden" id="dlg-d6">
+  <div class="modal" style="width:620px">
+    <div class="modal-h">批量附件上传 <span class="dlg-tag">D6 · B23</span>
+      <button class="modal-x" onclick="closeModal('dlg-d6')">✕</button></div>
+    <div class="modal-b">
+      <div style="margin-bottom:8px">文件命名规则（R-MD25）：<b>承运商编码+文件名.文件类型</b> 或 <b>承运商编码(文件名).文件类型</b>，
+        如 <span class="mono">CY-10001+测试文件1.jpg</span> 或 <span class="mono">CY-10001(测试文件1).jpg</span></div>
+      <div class="hint" style="margin-bottom:8px">当前勾选承运商：<span id="d6-sel" class="mono"></span>（未勾选时按文件名中的承运商编码匹配，文件挂接至对应承运商的合同附件）</div>
+      <textarea class="ta mono" id="d6-names" rows="5" placeholder="每行一个文件名"></textarea>
+      <div id="d6-result" class="result-box hidden"></div>
+    </div>
+    <div class="modal-f">
+      <button class="btn" onclick="closeModal('dlg-d6')">取消</button>
+      <button class="btn primary" onclick="doBatchUpload()">批量上传</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ 离开确认（B13） ═══════════ -->
+<div class="mask hidden" id="dlg-leave">
+  <div class="modal" style="width:420px">
+    <div class="modal-h">离开确认 <span class="dlg-tag">B13</span>
+      <button class="modal-x" onclick="closeModal('dlg-leave')">✕</button></div>
+    <div class="modal-b"><div class="modal-warn">
+      <div class="warn-ic">!</div><div id="leave-msg">存在未保存的修改，确定离开？</div></div></div>
+    <div class="modal-f">
+      <button class="btn primary" onclick="closeModal('dlg-leave')">继续编辑</button>
+      <button class="btn" onclick="leaveConfirm()">确定离开</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+/* ================= 工具 ================= */
+const $ = s => document.querySelector(s);
+const $$ = s => Array.from(document.querySelectorAll(s));
+function esc(s){ return String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+function now(){ const d=new Date(), p=n=>String(n).padStart(2,'0');
+  return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`; }
+function today(){ const d=new Date(), p=n=>String(n).padStart(2,'0');
+  return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`; }
+function toast(msg, type){ type = type || 'info';
+  const d = document.createElement('div'); d.className = 'toast-item toast-' + type; d.textContent = msg;
+  $('#toast').appendChild(d);
+  setTimeout(()=>{ d.style.transition='opacity .3s'; d.style.opacity='0'; setTimeout(()=>d.remove(), 300); }, 2800); }
+function openModal(id){ $('#'+id).classList.remove('hidden'); }
+function closeModal(id){ $('#'+id).classList.add('hidden'); }
+function getRadio(name){ const r = document.querySelector(`input[name="${name}"]:checked`); return r ? r.value : null; }
+function setRadio(name, v){ $$(`input[name="${name}"]`).forEach(r => r.checked = r.value === v); }
+
+/* ================= 模拟数据（V1.1 字段结构） ================= */
+const TENANTS = {
+  'T-20001': { name:'华顺协同物流（上海）有限公司', admin:'李协同', status:'启用' },
+  'T-20002': { name:'鹏城国际货运（深圳）有限公司', admin:'赵鹏城', status:'启用' },
+  'T-20003': { name:'京津冀协同供应链有限公司', admin:'孙冀北', status:'停用' }
+};
+let carriers = [
+  { code:'CY-10001', name:'华通快运（华东）', short:'华通快运', type:'快递', enabled:true,
+    desc:'快递路由对接承运商，覆盖华东全境，支持电子面单与路由回传',
+    bank:'中国工商银行上海市青浦支行', account:'1001187809200085617', settleMethod:'月结',
+    tenant:'T-20001', express:{ apiType:'华通快递', extParams:'{"customer":"HT2026","secret":"******","dailyPush":"Y"}' },
+    attachments:[{name:'CY-10001(运输合同2026).pdf', by:'张三', time:'2026-03-12 10:02:11'},
+                 {name:'CY-10001(道路运输经营许可证).pdf', by:'张三', time:'2026-03-12 10:05:46'}],
+    referenced:true, createdDate:'2026-03-12', updateTime:'2026-11-18 14:22:31' },
+  { code:'CY-10002', name:'恒邦物流（苏州）', short:'恒邦物流', type:'专线', enabled:true,
+    desc:'苏州至全国干线专线，主力零担承运商',
+    bank:'中国银行苏州工业园区支行', account:'4563901009217782345', settleMethod:'月结',
+    tenant:'', express:null,
+    attachments:[{name:'CY-10002+运输合同.pdf', by:'李四', time:'2026-04-02 09:18:27'}],
+    referenced:true, createdDate:'2026-04-02', updateTime:'2026-11-16 09:05:12' },
+  { code:'CY-10003', name:'顺达车队（成都）', short:'顺达车队', type:'车队', enabled:true,
+    desc:'成都市内配送车队，自有车辆 12 台',
+    bank:'', account:'', settleMethod:'月结',
+    tenant:'', express:null, attachments:[],
+    referenced:false, createdDate:'2026-06-18', updateTime:'2026-11-12 10:18:26' },
+  { code:'CY-10004', name:'王建国（个体司机）', short:'王建国', type:'个体', enabled:false,
+    desc:'临时运力，暂停合作',
+    bank:'', account:'', settleMethod:'票结',
+    tenant:'', express:null, attachments:[],
+    referenced:true, createdDate:'2026-01-25', updateTime:'2026-11-05 13:40:19' },
+  { code:'CY-10005', name:'万川物流（深圳）', short:'万川物流', type:'专线', enabled:true,
+    desc:'华南干线主力承运商，回单结算',
+    bank:'招商银行深圳宝安支行', account:'755926801210801', settleMethod:'月结',
+    tenant:'T-20002', express:null,
+    attachments:[{name:'CY-10005(运输合同2026).pdf', by:'张三', time:'2025-12-08 15:31:02'},
+                 {name:'CY-10005(道路运输经营许可证).pdf', by:'张三', time:'2025-12-08 15:33:40'},
+                 {name:'CY-10005+保险单.pdf', by:'李四', time:'2026-02-14 11:20:58'}],
+    referenced:true, createdDate:'2025-12-08', updateTime:'2026-11-19 11:30:45' },
+  { code:'CY-10006', name:'驿达速递', short:'驿达', type:'快递', enabled:true,
+    desc:'同城即时配送快递',
+    bank:'中国建设银行上海闵行支行', account:'31001542100050019668', settleMethod:'月结',
+    tenant:'', express:{ apiType:'驿达开放平台', extParams:'{"appKey":"YD-8888","version":"v2"}' },
+    attachments:[],
+    referenced:false, createdDate:'2026-05-30', updateTime:'2026-11-17 15:02:57' },
+  { code:'CY-10007', name:'华宇专线（武汉）', short:'华宇专线', type:'专线', enabled:false,
+    desc:'服务质量问题暂停合作',
+    bank:'', account:'', settleMethod:'季结',
+    tenant:'', express:null, attachments:[],
+    referenced:false, createdDate:'2026-02-11', updateTime:'2026-10-28 16:44:03' },
+  { code:'CY-10008', name:'京翼快递（华北）', short:'京翼快递', type:'快递', enabled:true,
+    desc:'华北区域快递，京津冀次日达；快递接口未接入',
+    bank:'中国农业银行北京经济技术开发区支行', account:'11223301040019988', settleMethod:'月结',
+    tenant:'', express:{ apiType:'无', extParams:'' },
+    attachments:[],
+    referenced:true, createdDate:'2026-03-25', updateTime:'2026-11-20 09:55:33' }
+];
+
+/* ================= 状态 ================= */
+let sel = new Set();          // P1 勾选的承运商编码
+let editingCode = null;       // P2 编辑模式承运商编码（null=新增）
+let draft = null;             // P2 工作副本
+let formDirty = false;        // B13 未保存提示
+let currentDetailCode = null; // P3 当前承运商编码
+
+/* ================= 界面切换 ================= */
+function switchScreen(k){
+  $$('section[id^="screen-"]').forEach(x => x.classList.add('hidden'));
+  $('#screen-' + k).classList.remove('hidden');
+  $$('.ptab').forEach(t => t.classList.toggle('active', t.dataset.k === k));
+}
+function toggleSec(h){ h.parentElement.classList.toggle('closed'); }
+function ensureSec(i){
+  const s = $$('#dlg-p2 .sec')[i];
+  if (!s) return;
+  s.classList.remove('closed');
+  s.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+/* ================= P1 列表 ================= */
+function getFiltered(){
+  const q = { code: $('#q-code').value.trim().toLowerCase(), name: $('#q-name').value.trim(),
+              type: $('#q-type').value, enabled: $('#q-enabled').value,
+              d1: $('#q-date1').value, d2: $('#q-date2').value };
+  return carriers.filter(c =>
+    (!q.code || c.code.toLowerCase().includes(q.code)) &&
+    (!q.name || c.name.includes(q.name) || (c.short && c.short.includes(q.name))) &&
+    (q.type === '全部' || c.type === q.type) &&
+    (q.enabled === '全部' || (c.enabled ? '是' : '否') === q.enabled) &&
+    (!q.d1 || c.createdDate >= q.d1) &&
+    (!q.d2 || c.createdDate <= q.d2));
+}
+function renderList(){
+  const list = getFiltered();
+  $('#p1-count').textContent = list.length;
+  $('#p1-selcount').textContent = sel.size;
+  $('#p1-tbody').innerHTML = list.map(c => `
+    <tr data-code="${esc(c.code)}" class="${sel.has(c.code) ? 'selected' : ''}">
+      <td class="c-check"><input type="checkbox" ${sel.has(c.code) ? 'checked' : ''}></td>
+      <td class="mono"><a href="javascript:;" style="color:var(--blue)" onclick="event.stopPropagation();openDetail('${esc(c.code)}')">${esc(c.code)}</a></td>
+      <td>${esc(c.name)}</td>
+      <td>${esc(c.short) || '—'}</td>
+      <td>${esc(c.type)}</td>
+      <td>${c.enabled ? '<span class="status green">是</span>' : '<span class="status gray">否</span>'}</td>
+      <td>${esc(c.settleMethod)}</td>
+      <td class="mono">${c.tenant ? esc(c.tenant) : '—'}</td>
+      <td class="muted mono">${esc(c.updateTime)}</td>
+    </tr>`).join('') || `<tr><td colspan="9" class="empty">未查询到符合条件的承运商记录</td></tr>`;
+  $$('#p1-tbody tr[data-code]').forEach(tr =>
+    tr.addEventListener('click', () => { const code = tr.dataset.code;
+      sel.has(code) ? sel.delete(code) : sel.add(code); renderList(); }));
+  $('#ck-all').checked = list.length > 0 && list.every(c => sel.has(c.code));
+}
+function resetQuery(){ $('#q-code').value = ''; $('#q-name').value = '';
+  $('#q-type').value = '全部'; $('#q-enabled').value = '全部';
+  $('#q-date1').value = ''; $('#q-date2').value = ''; renderList(); }
+$('#ck-all').addEventListener('change', function(){
+  const list = getFiltered();
+  if (this.checked) list.forEach(c => sel.add(c.code)); else list.forEach(c => sel.delete(c.code));
+  renderList();
+});
+
+/* ================= P1 工具栏（B01~B11） ================= */
+function tb(action){
+  const arr = [...sel].map(code => carriers.find(c => c.code === code)).filter(Boolean);
+  if (action === 'add') { openForm('new'); return; }
+  if (action === 'import') { openModal('dlg-d4'); return; }
+  if (action === 'batchupload') { openBatchUpload(); return; }
+  if (!arr.length) { toast('请先勾选承运商记录', 'error'); return; }
+  const codes = arr.map(c => c.code).join('、');
+  switch (action) {
+    case 'edit':
+      if (arr.length !== 1) { toast('请选择一条承运商记录', 'error'); return; }
+      openForm('edit', arr[0].code); break;
+    case 'view':
+      if (arr.length !== 1) { toast('请选择一条承运商记录', 'error'); return; }
+      openDetail(arr[0].code); break;
+    case 'delete':
+      $('#d1-count').textContent = arr.length; $('#d1-ids').textContent = codes; openModal('dlg-d1'); break;
+    case 'disable': {
+      const ok = arr.filter(c => c.enabled);
+      if (!ok.length) { toast('请勾选"是否启用=是"的承运商记录', 'error'); return; }
+      $('#d2-count').textContent = ok.length; $('#d2-ids').textContent = ok.map(c => c.code).join('、');
+      openModal('dlg-d2'); break; }
+    case 'enable': {
+      const ok = arr.filter(c => !c.enabled);
+      if (!ok.length) { toast('请勾选"是否启用=否"的承运商记录', 'error'); return; }
+      ok.forEach(c => c.enabled = true); renderList();
+      toast(`已启用 ${ok.length} 条承运商记录`, 'success'); break; }
+    case 'sync':
+      $('#d3-count').textContent = arr.length; $('#d3-ids').textContent = codes; openModal('dlg-d3'); break;
+    case 'batchdownload': {
+      const files = arr.reduce((s, c) => s + c.attachments.length, 0);
+      if (!files) { toast('所选承运商暂无合同附件可下载', 'warn'); return; }
+      toast(`已打包下载 ${arr.length} 个承运商的合同附件（共 ${files} 个文件）`, 'success'); break; }
+    case 'export':
+      $('#d5-cnt').textContent = sel.size; $('#d5-qcnt').textContent = getFiltered().length;
+      openModal('dlg-d5'); break;
+  }
+}
+
+/* ================= 弹窗动作（B17~B23） ================= */
+function doDelete(){
+  const arr = [...sel].map(code => carriers.find(c => c.code === code)).filter(Boolean);
+  const bad = arr.filter(c => c.referenced);
+  closeModal('dlg-d1');
+  if (bad.length) { toast(`承运商 ${bad.map(c => c.code).join('、')} 已被业务数据引用，不可删除，请使用停用（R-MD23）`, 'error'); return; }
+  carriers = carriers.filter(c => !sel.has(c.code));
+  sel.clear(); renderList();
+  toast(`已删除 ${arr.length} 条承运商记录（逻辑删除，保留档案供历史单据追溯）`, 'success');
+}
+function doDisable(){
+  const arr = [...sel].map(code => carriers.find(c => c.code === code)).filter(Boolean);
+  const ok = arr.filter(c => c.enabled);
+  ok.forEach(c => c.enabled = false);
+  closeModal('dlg-d2'); renderList();
+  toast(`已停用 ${ok.length} 条承运商记录`, 'success');
+}
+function doSync(){ closeModal('dlg-d3'); toast('仓库承运商信息同步成功', 'success'); }
+function doImport(){
+  if (!$('#d4-file').value) { toast('请先选择要导入的文件', 'error'); return; }
+  const mode = getRadio('d4-mode');
+  $('#d4-result').classList.remove('hidden');
+  toast(`导入完成（${mode}模式）：成功 8 行，失败 2 行`, 'warn');
+}
+function doExport(){
+  const scope = getRadio('d5-scope');
+  const label = scope === 'sel' ? '当前勾选记录' : scope === 'query' ? '当前查询条件' : '全部承运商';
+  closeModal('dlg-d5');
+  toast(`已按【${label}】范围生成 Excel 文件并开始下载`, 'success');
+}
+
+/* ---- D6 批量附件上传（B23，R-MD25） ---- */
+function openBatchUpload(){
+  $('#d6-sel').textContent = sel.size ? [...sel].join('、') : '未勾选';
+  $('#d6-names').value = 'CY-10001+保险单2026.pdf\nCY-10005(道路运输经营许可证).pdf\n资质文件.pdf\nCY 10001合同.docx';
+  $('#d6-result').classList.add('hidden');
+  openModal('dlg-d6');
+}
+function doBatchUpload(){
+  const names = $('#d6-names').value.split('\n').map(s => s.trim()).filter(Boolean);
+  if (!names.length) { toast('请输入要上传的文件名（每行一个）', 'error'); return; }
+  const results = names.map(n => {
+    const m = n.match(/^([A-Za-z0-9_-]+)(?:\+(.*?)|\((.*?)\))\.([A-Za-z0-9]+)$/);
+    if (!m) return { n, ok:false, msg:'命名不符合规则（R-MD25）' };
+    const cid = m[1];
+    const c = carriers.find(x => x.code === cid);
+    if (!c) return { n, ok:false, msg:`承运商 ${cid} 不存在` };
+    c.attachments.push({ name:n, by:'张三', time:now() });
+    return { n, ok:true, msg:`已挂至承运商 ${cid} 的合同附件` };
+  });
+  const okN = results.filter(r => r.ok).length;
+  $('#d6-result').classList.remove('hidden');
+  $('#d6-result').innerHTML = results.map(r => `
+    <div class="upl-line">${r.ok ? '<span class="status green">✔ 成功</span>' : '<span class="status red">✘ 失败</span>'}
+      <span class="mono">${esc(r.n)}</span><span class="muted">${esc(r.msg)}</span></div>`).join('');
+  toast(`批量附件上传完成：成功 ${okN} 个，失败 ${results.length - okN} 个`, okN === results.length ? 'success' : 'warn');
+}
+/* ================= P2 表单弹窗 ================= */
+function markDirty(){ formDirty = true; }
+function onTypeChange(){ toggleExpress(); markDirty(); }
+function toggleExpress(){
+  $('#sec-express').classList.toggle('hidden', $('#f-type').value !== '快递');
+}
+function openForm(mode, code){
+  editingCode = mode === 'edit' ? code : null;
+  const src = mode === 'edit' ? carriers.find(c => c.code === code) : null;
+  draft = src ? JSON.parse(JSON.stringify(src))
+              : { code:'', name:'', short:'', desc:'', type:'', enabled:true,
+                  bank:'', account:'', settleMethod:'月结', tenant:'',
+                  express:{ apiType:'无', extParams:'' },
+                  attachments:[], referenced:false, createdDate:today() };
+  $('#p2-title').textContent = mode === 'edit' ? `编辑承运商 · ${draft.code}` : '新增承运商';
+  $('#p2-tag').textContent = mode === 'edit' ? 'P2 编辑模式' : 'P2 新增模式';
+  $('#f-code').disabled = mode === 'edit';
+  fillForm(); renderTenantCard(); renderAtt();
+  $$('#dlg-p2 .sec').forEach(s => s.classList.remove('closed'));
+  toggleExpress();
+  const mb = $('#dlg-p2 .modal-b'); if (mb) mb.scrollTop = 0;
+  formDirty = false; openModal('dlg-p2');
+}
+function fillForm(){
+  $('#f-code').value = draft.code; $('#f-name').value = draft.name;
+  $('#f-short').value = draft.short; $('#f-desc').value = draft.desc;
+  $('#f-type').value = draft.type; setRadio('f-enabled', draft.enabled ? '是' : '否');
+  $('#f-bank').value = draft.bank; $('#f-account').value = draft.account;
+  $('#f-method').value = draft.settleMethod;
+  const ex = draft.express || { apiType:'无', extParams:'' };
+  $('#f-api').value = ex.apiType; $('#f-ext').value = ex.extParams;
+  $('#f-tenant').value = draft.tenant || '';
+}
+function saveForm(){
+  const code = $('#f-code').value.trim(), name = $('#f-name').value.trim();
+  if (!code) { ensureSec(0); $('#f-code').focus(); toast('请填写承运商编码', 'error'); return; }
+  if (!/^[A-Za-z0-9_-]+$/.test(code)) { ensureSec(0); toast('承运商编码仅允许字母、数字、-、_', 'error'); return; }
+  if (!editingCode && carriers.some(c => c.code === code)) { ensureSec(0); toast('承运商编码已存在（R-MD18）', 'error'); return; }
+  if (!name) { ensureSec(0); $('#f-name').focus(); toast('请填写承运商名称', 'error'); return; }
+  if (!$('#f-type').value) { ensureSec(0); toast('请选择承运商类型', 'error'); return; }
+  const type = $('#f-type').value;
+  if (type === '快递') {
+    const apiType = $('#f-api').value, ext = $('#f-ext').value.trim();
+    if (apiType !== '无' && !ext) { ensureSec(2); toast('接口类型不为"无"时，扩展参数必填（R-MD20）', 'error'); return; }
+    if (apiType !== '无' && ext) {
+      try { JSON.parse(ext); } catch (e) { ensureSec(2); toast('扩展参数须为合法 JSON 格式（R-MD20）', 'error'); return; } }
+    draft.express = { apiType, extParams: ext };
+  } /* 非快递类型：已维护的接口配置保留但不再生效（R-MD20） */
+  draft.code = code; draft.name = name;
+  draft.short = $('#f-short').value.trim(); draft.desc = $('#f-desc').value.trim();
+  draft.type = type; draft.enabled = getRadio('f-enabled') === '是';
+  draft.bank = $('#f-bank').value.trim(); draft.account = $('#f-account').value.trim();
+  draft.settleMethod = $('#f-method').value; draft.updateTime = now();
+  if (editingCode) { const i = carriers.findIndex(c => c.code === editingCode); draft.referenced = carriers[i].referenced; carriers[i] = draft; }
+  else { draft.referenced = false; carriers.push(draft); }
+  closeModal('dlg-p2'); sel.clear(); renderList(); editingCode = null; formDirty = false;
+  if (!$('#screen-p3').classList.contains('hidden') && currentDetailCode) openDetail(currentDetailCode);
+  toast('保存成功', 'success');
+}
+function cancelForm(){
+  if (formDirty) openModal('dlg-leave');
+  else { editingCode = null; closeModal('dlg-p2'); }
+}
+function leaveConfirm(){ closeModal('dlg-leave'); closeModal('dlg-p2'); editingCode = null; formDirty = false; }
+
+/* ---- P2 分区4：授权租户（B14，R-MD21） ---- */
+function renderTenantCard(){
+  const t = TENANTS[draft.tenant];
+  const cnt = $('#sec-tenant-cnt');
+  if (cnt) cnt.textContent = t ? '已授权 ' + draft.tenant : '未授权';
+  $('#tenant-card').innerHTML = t ? `
+    <div class="detail-grid" style="max-width:760px">
+      <div class="detail-field"><span>租户ID</span><strong class="mono">${esc(draft.tenant)}</strong></div>
+      <div class="detail-field"><span>租户名称</span><strong>${esc(t.name)}</strong></div>
+      <div class="detail-field"><span>租户状态</span><strong>${t.status === '启用' ? '<span class="status green">启用</span>' : '<span class="status gray">停用</span>'}</strong></div>
+      <div class="detail-field"><span>协同能力</span><strong>委托第三方物流运输（该租户作为协同方执行运输）</strong></div>
+    </div>` : `<div class="empty-box">未授权关联租户 —— 输入外部协同租户ID并点击【关联】</div>`;
+}
+function linkTenant(){
+  const v = $('#f-tenant').value.trim();
+  if (!v) { toast('请输入要授权关联的租户ID', 'error'); return; }
+  if (draft.tenant && draft.tenant !== v) { toast('一个承运商只能关联一个租户（R-MD21）', 'error'); return; }
+  if (!TENANTS[v] || TENANTS[v].status !== '启用') { toast('租户不存在或未启用，请检查租户ID（R-MD21）', 'error'); return; }
+  draft.tenant = v; formDirty = true; renderTenantCard();
+  toast('授权关联成功，已建立委托第三方物流运输协同', 'success');
+}
+
+/* ---- P2 分区5：合同附件（只读展示，R-MD25） ---- */
+function renderAtt(){
+  const cnt = $('#sec-att-cnt');
+  if (cnt) cnt.textContent = draft.attachments.length + ' 个';
+  $('#att-tbody').innerHTML = draft.attachments.map((a, i) => `
+    <tr><td class="mono">${i + 1}</td><td class="mono">${esc(a.name)}</td><td>${esc(a.by)}</td><td class="muted mono">${esc(a.time)}</td></tr>`
+  ).join('') || `<tr><td colspan="4" class="empty">暂无合同附件；请在列表通过【批量附件上传】按命名规则上传（R-MD25）</td></tr>`;
+}
+/* ================= P3 承运商详情（B15/B16） ================= */
+function dl(pairs){
+  return `<div class="detail-grid">${pairs.map(([k, v, r]) =>
+    `<div class="detail-field"><span>${k}${r ? ` <i class="rule">${r}</i>` : ''}</span><strong>${v}</strong></div>`).join('')}</div>`;
+}
+function openDetail(code){
+  currentDetailCode = code;
+  const c = carriers.find(x => x.code === code); if (!c) return;
+  $('#p3-title').textContent = `承运商详情 · ${c.code} ${c.name}`;
+  $('#p3-tags').innerHTML =
+    (c.enabled ? '<span class="status green">是</span>' : '<span class="status gray">否</span>') +
+    ` <span class="status blue">${esc(c.type)}</span>` +
+    (c.type === '快递' && c.express && c.express.apiType !== '无' ? ' <span class="status blue">快递接口</span>' : '') +
+    (c.referenced ? ' <span class="status yellow">已被业务单据引用</span>' : '');
+  $('#p3-base').innerHTML = dl([
+    ['承运商编码', `<span class="mono">${esc(c.code)}</span>`, 'R-MD18'], ['承运商名称', esc(c.name)],
+    ['承运商简称', esc(c.short) || '—'], ['承运商类型', esc(c.type)],
+    ['是否启用', c.enabled ? '是' : '否', 'R-MD19'], ['创建时间', esc(c.createdDate)],
+    ['承运商描述', esc(c.desc) || '—'], ['最后更新时间', esc(c.updateTime)]
+  ]);
+  $('#p3-settle').innerHTML = dl([
+    ['开户银行', esc(c.bank) || '—', 'R-MD22'], ['银行账户', c.account ? `<span class="mono">${esc(c.account)}</span>` : '—', 'R-MD22'],
+    ['结算方式', esc(c.settleMethod), 'R-MD22']
+  ]);
+  $('#p3-express-card').classList.toggle('hidden', c.type !== '快递');
+  const ex = c.express || { apiType:'无', extParams:'' };
+  $('#p3-express').innerHTML = dl([
+    ['接口类型', esc(ex.apiType), 'R-MD20'],
+    ['扩展参数', ex.extParams ? `<span class="mono" style="font-size:11px">${esc(ex.extParams)}</span>` : '—', 'R-MD20']
+  ]);
+  const t = TENANTS[c.tenant];
+  $('#p3-tenant').innerHTML = t ? dl([
+    ['租户ID', `<span class="mono">${esc(c.tenant)}</span>`, 'R-MD21'], ['租户名称', esc(t.name)],
+    ['租户状态', t.status], ['协同能力', '委托第三方物流运输（该租户作为协同方执行运输）']
+  ]) : `<div class="empty-box">未授权关联租户</div>`;
+  $('#p3-att').innerHTML = `<thead><tr><th style="width:44px">序号</th><th>文件名</th><th style="width:110px">上传人</th><th style="width:170px">上传时间</th></tr></thead><tbody>` +
+    (c.attachments.map((a, i) => `<tr><td class="mono">${i + 1}</td><td class="mono">${esc(a.name)}</td>
+      <td>${esc(a.by)}</td><td class="muted mono">${esc(a.time)}</td></tr>`).join('') ||
+      `<tr><td colspan="4" class="empty">暂无合同附件</td></tr>`) + `</tbody>`;
+  switchScreen('p3');
+}
+function p3Edit(){ if (currentDetailCode) openForm('edit', currentDetailCode); }
+
+/* ================= 顶部页签切换 ================= */
+$$('.ptab').forEach(t => t.addEventListener('click', () => {
+  const k = t.dataset.k;
+  if (k === 'p2') { openForm(editingCode ? 'edit' : 'new', editingCode || undefined); return; }
+  if (k === 'p3') { openDetail(currentDetailCode || carriers[0].code); return; }
+  switchScreen(k);
+}));
+
+/* ================= 弹窗遮罩点击关闭 ================= */
+$$('.mask').forEach(m => m.addEventListener('click', e => {
+  if (e.target !== m) return;
+  if (m.id === 'dlg-p2') { cancelForm(); return; }
+  m.classList.add('hidden');
+}));
+
+/* ================= 初始化 ================= */
+renderList();
+</script>
+</body>
+</html>

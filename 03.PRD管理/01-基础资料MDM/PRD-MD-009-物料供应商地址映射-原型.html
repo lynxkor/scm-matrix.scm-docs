@@ -1,0 +1,940 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PRD-MD-009 物料供应商地址映射 · 高保真交互原型</title>
+<style>
+  /* ============================================================
+     设计令牌 — 对齐 lcdesign-web（LC Design）视觉基线
+     主色 #009100 · 正文 14px · 表头 #F8F7F7 · 圆角 4/8px
+     ============================================================ */
+  :root {
+    --bg: #F8F8F8; --panel: #FFFFFF; --sidebar-bg: #FFFFFF;
+    --ink: #0A0E0A; --sub: #3B3E3B; --muted: #9D9F9D;
+    --line: #E6E6E5; --line-soft: #F8F7F7;
+    --brand: #009100; --brand-hover: #00A800; --brand-dark: #007400;
+    --brand-weak: #E9FAEB; --brand-edge: #B7E0B9;
+    --red: #B91919; --red-weak: #F8E8E8;
+    --yellow: #C8A12B; --yellow-weak: #FAF6EA;
+    --blue: #2261DD; --blue-weak: #E9EEF9;
+    --shadow: 0 4px 10px rgba(10, 14, 10, .12);
+    --shadow-lg: 0 10px 24px rgba(10, 14, 10, .15);
+    --radius: 8px; --radius-sm: 4px; --radius-pill: 999px;
+    --t-fast: .15s ease;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { color: var(--sub); background: var(--bg); line-height: 1.5;
+         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", "PingFang SC", "Noto Sans SC", sans-serif;
+         font-size: 14px; }
+  button, select, textarea, input { font: inherit; }
+  button { cursor: pointer; }
+  .hidden { display: none !important; }
+  .mono { font-family: "SF Mono", Consolas, monospace; font-size: 13px; }
+  .muted { color: var(--muted); }
+
+  /* ===== 原型导航条 ===== */
+  .proto-bar { position: sticky; top: 0; z-index: 95; display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+               min-height: 64px; padding: 10px 16px; background: #fff; border-bottom: 1px solid var(--line); }
+  .proto-bar .pb-t { font-size: 16px; font-weight: 600; color: var(--ink); }
+  .proto-bar .pb-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .ptabs { display: flex; gap: 4px; margin-left: auto; flex-wrap: wrap; }
+  .ptab { height: 32px; padding: 0 12px; border: 0; border-radius: var(--radius-sm); background: transparent;
+          color: var(--sub); font-size: 14px; transition: all var(--t-fast); }
+  .ptab:hover { background: var(--line-soft); color: var(--brand); }
+  .ptab.active { background: var(--brand-weak); color: var(--brand); font-weight: 600; }
+
+  /* ===== 平台框架 ===== */
+  .app { display: flex; min-height: calc(100vh - 64px); }
+  .sidebar { width: 200px; flex-shrink: 0; background: var(--sidebar-bg); border-right: 1px solid var(--line);
+             padding: 12px 8px; position: sticky; top: 64px; height: calc(100vh - 64px); overflow-y: auto; }
+  .sb-brand { display: flex; gap: 8px; align-items: center; height: 40px; padding: 0 8px 8px; }
+  .sb-mark { width: 28px; height: 28px; border-radius: var(--radius-sm); display: grid; place-items: center;
+             color: #fff; font-weight: 600; font-size: 12px; background: var(--brand); }
+  .sb-brand strong { font-size: 14px; font-weight: 600; color: var(--ink); }
+  .sb-group { color: var(--muted); font-size: 12px; padding: 12px 8px 4px; }
+  .sb-item { display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 12px;
+             border-radius: var(--radius-sm); font-size: 14px; color: var(--sub); transition: all var(--t-fast); }
+  .sb-item:hover { background: var(--line-soft); color: var(--brand); }
+  .sb-item.active { background: var(--brand-weak); color: var(--brand); font-weight: 500; }
+  .main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .topbar { min-height: 56px; background: #fff; border-bottom: 1px solid var(--line);
+            display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 0 16px;
+            position: sticky; top: 64px; z-index: 90; }
+  .page-head { display: flex; align-items: baseline; gap: 16px; min-width: 0; flex-wrap: wrap; }
+  .page-title { font-size: 16px; font-weight: 500; color: var(--ink); }
+  .page-sub { font-size: 14px; color: var(--sub); }
+  .user-chip { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--sub); }
+  .user-chip .ava { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center;
+                    color: #fff; font-size: 12px; font-weight: 600; background: var(--brand); }
+  .content { flex: 1; padding: 16px 16px 24px; min-width: 0; }
+
+  /* ===== 卡片 ===== */
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); margin-bottom: 16px; overflow: hidden; }
+  .card-h { min-height: 48px; padding: 0 16px; border-bottom: 1px solid var(--line-soft); font-weight: 600; font-size: 14px;
+            color: var(--ink); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .card-b { padding: 16px; }
+
+  /* ===== 按钮 ===== */
+  .btn { height: 32px; padding: 0 16px; border: 1px solid var(--line); border-radius: var(--radius-sm);
+         color: var(--sub); background: #fff; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+         font-size: 14px; line-height: 1; transition: all var(--t-fast); }
+  .btn:hover { border-color: var(--brand); color: var(--brand); }
+  .btn:focus-visible { outline: 2px solid var(--brand-weak); outline-offset: 1px; }
+  .btn.primary { color: #fff; border-color: var(--brand); background: var(--brand); }
+  .btn.primary:hover { background: var(--brand-hover); border-color: var(--brand-hover); color: #fff; }
+  .btn.danger { color: #fff; border-color: var(--red); background: var(--red); }
+  .btn.danger:hover { opacity: .9; color: #fff; }
+  .btn.sm { height: 28px; padding: 0 10px; font-size: 13px; }
+
+  /* ===== 表格 ===== */
+  table { width: 100%; border-collapse: collapse; font-size: 14px; color: var(--sub); }
+  th, td { padding: 12px; border-bottom: 1px solid var(--line-soft); text-align: left; vertical-align: middle; }
+  th { color: var(--sub); background: var(--line-soft); font-weight: 600; white-space: nowrap; border-bottom: 1px solid var(--line); }
+  tbody tr { transition: background var(--t-fast); }
+  tbody tr:hover { background: var(--line-soft); }
+  table.stripe tbody tr:nth-child(even) { background: #FCFBFB; }
+  tbody tr.selected, tbody tr.selected:hover { background: var(--brand-weak); }
+  .c-check { text-align: center; width: 40px; }
+
+  /* ===== 行内操作列 ===== */
+  .c-act { white-space: nowrap; }
+  .act { border: 0; background: none; padding: 0; height: auto; font-size: 13px; line-height: 20px;
+         color: var(--brand); text-decoration: none; transition: color var(--t-fast); }
+  .act:hover { color: var(--brand-hover); text-decoration: underline; }
+  .act:focus-visible { outline: 2px solid var(--brand-weak); outline-offset: 2px; border-radius: 2px; }
+  .act.danger { color: var(--red); }
+  .act.danger:hover { color: #D32020; text-decoration: underline; }
+  .act-sep { color: var(--line); margin: 0 6px; font-size: 12px; }
+  td.empty { text-align: center; color: var(--muted); padding: 32px 12px; }
+
+  /* ===== 标签 ===== */
+  .status { display: inline-flex; align-items: center; gap: 4px; height: 22px; border-radius: var(--radius-sm);
+            padding: 0 10px; border: 1px solid transparent; font-size: 12px; font-weight: 500; white-space: nowrap; }
+  .status.green { color: var(--brand); background: var(--brand-weak); border-color: var(--brand-edge); }
+  .status.gray { color: var(--sub); background: var(--line-soft); border-color: var(--line); }
+  .status.blue { color: var(--blue); background: var(--blue-weak); border-color: #D6E0F5; }
+  .status.yellow { color: #8C6D12; background: var(--yellow-weak); border-color: #EFE3BF; }
+  .status.red { color: var(--red); background: var(--red-weak); border-color: #F0D0D0; }
+
+  /* ===== 查询区 ===== */
+  .qgrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px 24px; }
+  .qitem { display: flex; align-items: center; gap: 8px; }
+  .qlabel { width: 96px; text-align: right; font-size: 14px; color: var(--sub); flex-shrink: 0; }
+  .qact { display: flex; gap: 8px; align-items: center; justify-content: flex-start; }
+  .qrange { display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0; }
+  .qrange .txt { min-width: 0; }
+
+  /* ===== 输入控件 ===== */
+  .txt, .sel { width: 100%; height: 32px; padding: 0 12px; border: 1px solid var(--line);
+               border-radius: var(--radius-sm); font-size: 14px; color: var(--sub); background: #fff; outline: none;
+               transition: border-color var(--t-fast); }
+  .txt::placeholder, .ta::placeholder { color: var(--muted); }
+  .txt:focus, .sel:focus, .ta:focus { border-color: var(--brand); }
+  .txt:disabled, .sel:disabled { background: var(--bg); color: var(--muted); cursor: not-allowed; }
+  .txt[readonly] { background: var(--line-soft); }
+  .ta { width: 100%; min-height: 72px; padding: 8px 12px; border: 1px solid var(--line); border-radius: var(--radius-sm);
+        font-size: 14px; color: var(--sub); background: #fff; outline: none; resize: vertical; transition: border-color var(--t-fast); }
+  input[type="checkbox"], input[type="radio"] { accent-color: var(--brand); margin: 0; }
+
+  /* ===== 工具栏 / 分页 ===== */
+  .toolbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--line-soft); }
+  .toolbar .sep { width: 1px; height: 16px; background: var(--line); margin: 0 4px; }
+  .pager { display: flex; justify-content: flex-end; align-items: center; gap: 8px; padding: 12px 16px;
+           color: var(--sub); font-size: 14px; flex-wrap: wrap; }
+  .pager b { color: var(--ink); font-weight: 600; }
+  .pg-btn { min-width: 24px; height: 24px; padding: 0 6px; border: 1px solid var(--line); background: #fff; border-radius: var(--radius-sm);
+            font-size: 13px; color: var(--sub); }
+  .pg-btn:hover { border-color: var(--brand); color: var(--brand); }
+  .pg-btn.active { border-color: var(--brand); color: var(--brand); font-weight: 600; }
+  .pg-sel { height: 28px; width: auto; padding: 0 8px; font-size: 13px; }
+  .pg-jump { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); }
+  .pg-input { width: 44px; height: 28px; padding: 0 8px; border: 1px solid var(--line); border-radius: var(--radius-sm);
+              text-align: center; color: var(--sub); background: #fff; outline: none; }
+  .pg-input:focus { border-color: var(--brand); }
+
+  /* ===== P2 表单弹窗 ===== */
+  .modal.lg { width: 860px; max-width: 96vw; max-height: 88vh; display: flex; flex-direction: column; }
+  .modal.lg .modal-b { flex: 1; overflow-y: auto; padding: 16px; }
+  .sec { border: 1px solid var(--line); border-radius: var(--radius); margin-bottom: 12px; background: #fff; overflow: hidden; }
+  .sec-h { display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 16px; background: var(--line-soft);
+           font-weight: 600; font-size: 14px; color: var(--ink); cursor: pointer; user-select: none; transition: background var(--t-fast); }
+  .sec-h:hover { background: var(--brand-weak); }
+  .sec-h .arrow { font-size: 10px; color: var(--brand); transition: transform var(--t-fast); display: inline-block; }
+  .sec.closed .arrow { transform: rotate(-90deg); }
+  .sec-h .cnt { margin-left: auto; font-size: 12px; color: var(--muted); font-weight: 400; }
+  .sec-b { padding: 16px; border-top: 1px solid var(--line-soft); }
+  .sec.closed .sec-b { display: none; }
+  .fgrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 24px; }
+  .fitem { display: flex; align-items: flex-start; }
+  .flabel { width: 112px; text-align: right; padding-right: 12px; color: var(--sub); font-size: 14px;
+            flex-shrink: 0; line-height: 32px; }
+  .flabel .req { color: var(--red); margin-right: 4px; }
+  .fctrl { flex: 1; min-width: 0; }
+  .span2 { grid-column: 1 / -1; }
+  .hint { font-size: 12px; color: var(--muted); margin-top: 4px; line-height: 1.5; }
+  .radio { display: inline-flex; align-items: center; gap: 6px; margin-right: 16px; line-height: 32px; cursor: pointer; font-size: 14px; color: var(--sub); }
+  .form-f { min-height: 56px; padding: 0 16px; border-top: 1px solid var(--line); display: flex; align-items: center;
+            justify-content: flex-end; gap: 8px; background: #fff; }
+
+  /* ===== P3 详情页 ===== */
+  .dcard { border: 1px solid var(--line); border-radius: var(--radius); margin-bottom: 16px; overflow: hidden; }
+  .dcard-t { min-height: 44px; padding: 0 16px; background: var(--line-soft); border-bottom: 1px solid var(--line-soft);
+             font-weight: 600; font-size: 14px; color: var(--ink); display: flex; gap: 8px; align-items: center; }
+  .dcard-b { padding: 16px; }
+  .detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .detail-field { padding: 12px; border: 1px solid var(--line-soft); border-radius: var(--radius-sm); background: #FCFBFB; }
+  .detail-field span { display: block; color: var(--muted); font-size: 12px; }
+  .detail-field strong { display: block; margin-top: 4px; font-size: 14px; font-weight: 500; color: var(--ink); word-break: break-all; }
+
+  /* ===== 弹窗 ===== */
+  .mask { position: fixed; inset: 0; background: rgba(10, 14, 10, .4); display: flex; align-items: flex-start;
+          justify-content: center; padding-top: 8vh; z-index: 100; }
+  .modal { width: 500px; max-width: 92vw; background: #fff; border-radius: var(--radius); box-shadow: var(--shadow-lg);
+           animation: pop .18s ease; }
+  @keyframes pop { from { transform: scale(.96); opacity: 0; } }
+  .modal-h { min-height: 52px; padding: 0 20px; font-weight: 600; font-size: 16px; color: var(--ink);
+             border-bottom: 1px solid var(--line-soft); display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+  .dlg-tag { font-size: 12px; font-weight: 500; font-family: "SF Mono", Consolas, monospace;
+             background: var(--brand-weak); color: var(--brand); border-radius: var(--radius-sm); padding: 2px 8px; }
+  .modal-x { border: 0; background: none; color: var(--muted); font-size: 16px; line-height: 1; }
+  .modal-x:hover { color: var(--ink); }
+  .modal-b { padding: 20px; font-size: 14px; color: var(--sub); line-height: 1.6; }
+  .modal-f { min-height: 56px; padding: 0 20px; border-top: 1px solid var(--line-soft); display: flex;
+             align-items: center; justify-content: flex-end; gap: 8px; }
+  .modal-warn { display: flex; gap: 12px; align-items: flex-start; }
+  .warn-ic { width: 26px; height: 26px; border-radius: 50%; background: var(--yellow-weak); color: var(--yellow);
+             font-weight: 600; display: grid; place-items: center; flex-shrink: 0; font-size: 14px; }
+  .warn-ic.red { background: var(--red-weak); color: var(--red); }
+  .result-box { margin-top: 12px; background: var(--yellow-weak); border: 1px solid #EFE3BF; border-radius: var(--radius-sm); padding: 12px; }
+  .result-box a { color: var(--blue); }
+
+  /* ===== Toast ===== */
+  #toast { position: fixed; left: 50%; top: 80px; transform: translateX(-50%); z-index: 300;
+           display: flex; flex-direction: column; gap: 8px; align-items: center; }
+  .toast-item { padding: 10px 16px; border-radius: var(--radius-sm); color: #fff; font-size: 14px;
+                box-shadow: var(--shadow); animation: tin .2s ease; max-width: 80vw; }
+  @keyframes tin { from { opacity: 0; transform: translateY(-8px); } }
+  .toast-info { background: var(--sub); }
+  .toast-success { background: var(--brand); }
+  .toast-error { background: var(--red); }
+  .toast-warn { background: var(--yellow); }
+
+  /* ===== P9 关系图 ===== */
+  .p9-svg { width: 100%; height: auto; display: block; min-width: 900px; }
+  .p9-wrap { overflow-x: auto; }
+  .note-strip { border: 1px solid var(--brand-edge); background: #F6FBF6; border-radius: var(--radius);
+                padding: 12px 16px; font-size: 14px; color: var(--sub); line-height: 1.6; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════ 原型导航条 ═══════════ -->
+<div class="proto-bar">
+  <div>
+    <div class="pb-t">PRD-MD-009 物料供应商地址映射 · 高保真交互原型</div>
+    <div class="pb-sub">基础资料 MDM · 商品主数据-物料供应商地址映射 · V1.0（草稿） · 实现 P1/P2/P3/P9 + D1~D4，按钮 B01~B17 与规则 R-MD71~R-MD74 以模拟数据实现，可点击体验</div>
+  </div>
+  <div class="ptabs">
+    <button class="ptab active" data-k="p1">P1 映射列表</button>
+    <button class="ptab" data-k="p2">P2 表单弹窗</button>
+    <button class="ptab" data-k="p3">P3 映射详情</button>
+    <button class="ptab" data-k="p9">P9 按钮关系总览</button>
+  </div>
+</div>
+
+<div class="app">
+  <!-- ═══════════ 左侧菜单 ═══════════ -->
+  <aside class="sidebar">
+    <div class="sb-brand"><div class="sb-mark">OT</div><strong>OTWB 平台</strong></div>
+    <div class="sb-group">基础资料</div>
+    <div class="sb-item">客户</div>
+    <div class="sb-item">承运商</div>
+    <div class="sb-item">供应商</div>
+    <div class="sb-item">司机</div>
+    <div class="sb-item">车辆</div>
+    <div class="sb-item">物料</div>
+    <div class="sb-item">地址</div>
+    <div class="sb-item">月台</div>
+    <div class="sb-group">商品主数据</div>
+    <div class="sb-item active">物料供应商地址映射</div>
+    <div class="sb-group">订单管理 OMS</div>
+    <div class="sb-item">销售订单</div>
+    <div class="sb-item">发货订单</div>
+    <div class="sb-group">运输管理 TMS</div>
+    <div class="sb-item">运单</div>
+    <div class="sb-item">配载计划</div>
+    <div class="sb-group">结算管理 BMS</div>
+    <div class="sb-item">应收凭证</div>
+    <div class="sb-item">对账单</div>
+    <div class="sb-group">系统管理</div>
+    <div class="sb-item">用户与角色</div>
+  </aside>
+
+  <!-- ═══════════ 主区域 ═══════════ -->
+  <main class="main">
+    <div class="topbar">
+      <div class="page-head">
+        <span class="page-title">物料供应商地址映射</span>
+        <span class="page-sub">基础资料 / 商品主数据 / 物料供应商地址映射 · 维护物料在各供应商处的取货地址</span>
+      </div>
+      <div class="user-chip"><div class="ava">张</div>主数据管理员 · 张三</div>
+    </div>
+
+    <div class="content">
+
+      <!-- ═══════════ P1 映射列表 ═══════════ -->
+      <section id="screen-p1">
+        <div class="card">
+          <div class="card-b">
+            <div class="qgrid">
+              <div class="qitem"><div class="qlabel">物料编码</div><input class="txt" id="q-mcode" placeholder="支持模糊匹配"></div>
+              <div class="qitem"><div class="qlabel">物料名称</div><input class="txt" id="q-mname" placeholder="支持模糊匹配"></div>
+              <div class="qitem"><div class="qlabel">供应商编码</div><input class="txt" id="q-scode" placeholder="支持模糊匹配"></div>
+              <div class="qitem"><div class="qlabel">供应商名称</div><input class="txt" id="q-sname" placeholder="支持模糊匹配"></div>
+              <div class="qitem"><div class="qlabel">取货地址</div><input class="txt" id="q-addr" placeholder="地址名称，模糊匹配"></div>
+              <div class="qitem"><div class="qlabel">是否启用</div>
+                <select class="sel" id="q-enabled"><option>全部</option><option>是</option><option>否</option></select></div>
+              <div class="qitem"><div class="qlabel">创建时间</div>
+                <div class="qrange"><input class="txt" type="date" id="q-date1" title="开始日期"><span class="muted">~</span><input class="txt" type="date" id="q-date2" title="结束日期"></div></div>
+              <div class="qact" style="margin-top:8px">
+                <button class="btn primary" onclick="renderList()">查 询</button>
+                <button class="btn" onclick="resetQuery()">重 置</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-h">映射列表 <span class="muted" style="font-weight:400;font-size:11px">P1 主界面</span></div>
+          <div class="toolbar">
+            <button class="btn primary" onclick="tb('add')">＋ 新增</button>
+            <button class="btn" onclick="tb('delete')">删除</button>
+            <span class="sep"></span>
+            <button class="btn" onclick="tb('enable')">启用</button>
+            <button class="btn" onclick="tb('disable')">停用</button>
+            <span class="sep"></span>
+            <button class="btn" onclick="tb('import')">导入</button>
+            <button class="btn" onclick="tb('export')">导出</button>
+          </div>
+          <table class="stripe">
+            <thead>
+              <tr>
+                <th class="c-check"><input type="checkbox" id="ck-all"></th>
+                <th>物料编码</th><th>物料名称</th><th>供应商编码</th><th>供应商名称</th>
+                <th>取货地址</th><th>是否启用</th><th>最后更新时间</th><th style="width:180px">操作</th>
+              </tr>
+            </thead>
+            <tbody id="p1-tbody"></tbody>
+          </table>
+          <div class="pager">
+            <span>共 <b id="p1-count">0</b> 条</span>
+            <span class="muted">已勾选 <b id="p1-selcount">0</b> 条</span>
+            <select class="sel pg-sel" aria-label="每页条数">
+              <option>10 条/页</option><option>20 条/页</option><option>50 条/页</option>
+            </select>
+            <button class="pg-btn" aria-label="上一页">‹</button>
+            <button class="pg-btn active">1</button>
+            <button class="pg-btn" aria-label="下一页">›</button>
+            <span class="pg-jump">前往 <input class="pg-input" value="1" aria-label="页码"> 页</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════════ P2 新增/编辑映射（弹窗表单） ═══════════ -->
+      <div class="mask hidden" id="dlg-p2" style="padding-top:80px">
+        <div class="modal lg">
+          <div class="modal-h"><span id="p2-title">新增映射</span>
+            <span class="dlg-tag" id="p2-tag">P2 新增模式</span>
+            <span style="flex:1"></span>
+            <span class="muted" style="font-weight:400;font-size:11px;margin-right:10px">同一物料 + 供应商仅可维护一条映射</span>
+            <button class="modal-x" onclick="cancelForm()">✕</button>
+          </div>
+          <div class="modal-b">
+
+          <div class="sec">
+            <div class="sec-h" onclick="toggleSec(this)"><span class="arrow">▼</span>映射信息<span class="cnt">必填：物料、供应商、取货地址</span></div>
+            <div class="sec-b">
+            <div class="fgrid">
+              <div class="fitem"><div class="flabel">物料名称</div>
+                <div class="fctrl"><input class="txt" id="f-mname" readonly placeholder="选择物料后自动带出"></div></div>
+              <div class="fitem"><div class="flabel"><span class="req">*</span>物料编码</div>
+                <div class="fctrl"><select class="sel" id="f-mat" onchange="onPairChange()"></select>
+                <div class="hint">来自物料主数据，须为启用状态（R-MD72）</div></div></div>
+              <div class="fitem"><div class="flabel">供应商名称</div>
+                <div class="fctrl"><input class="txt" id="f-sname" readonly placeholder="选择供应商后自动带出"></div></div>
+              <div class="fitem"><div class="flabel"><span class="req">*</span>供应商编码</div>
+                <div class="fctrl"><select class="sel" id="f-sup" onchange="onPairChange()"></select>
+                <div class="hint">来自供应商主数据，须为启用状态（R-MD72）</div></div></div>
+              <div class="fitem span2"><div class="flabel"><span class="req">*</span>取货地址</div>
+                <div class="fctrl"><select class="sel" id="f-addr" onchange="onAddrChange()"></select>
+                <div class="hint">来自地址主数据，须为启用状态；同一物料 + 供应商仅可维护一条取货地址（R-MD71、R-MD72）</div></div></div>
+              <div class="fitem"><div class="flabel"><span class="req">*</span>是否启用</div>
+                <div class="fctrl">
+                  <label class="radio"><input type="radio" name="f-enabled" value="是" checked onchange="markDirty()">是</label>
+                  <label class="radio"><input type="radio" name="f-enabled" value="否" onchange="markDirty()">否</label>
+                  <div class="hint">停用后采购下单不再带出该映射（R-MD73）</div></div></div>
+            </div>
+            </div>
+          </div>
+
+          </div><!-- /modal-b -->
+          <div class="modal-f">
+            <button class="btn" onclick="cancelForm()">取 消</button>
+            <button class="btn primary" onclick="saveForm()">保 存</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════════ P3 映射详情 ═══════════ -->
+      <section id="screen-p3" class="hidden">
+        <div class="card">
+          <div class="card-h">
+            <span id="p3-title">映射详情</span>
+            <span id="p3-tags"></span>
+            <span style="flex:1"></span>
+            <button class="btn primary sm" onclick="p3Edit()">编 辑</button>
+            <button class="btn sm" onclick="switchScreen('p1')">返 回</button>
+          </div>
+          <div class="card-b">
+            <div class="dcard">
+              <div class="dcard-t">映射信息</div>
+              <div class="dcard-b"><div class="detail-grid" id="p3-base"></div></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════════ P9 按钮—弹窗关系总览 ═══════════ -->
+      <section id="screen-p9" class="hidden">
+        <div class="card">
+          <div class="card-h">P9 按钮—弹窗/页面跳转关系总览
+            <span class="muted" style="font-weight:400;font-size:11px">对应 3.1.1 按钮—弹窗/页面映射表</span></div>
+          <div class="card-b p9-wrap">
+            <svg class="p9-svg" viewBox="0 0 1120 640" xmlns="http://www.w3.org/2000/svg" font-family="Microsoft YaHei, sans-serif">
+              <defs>
+                <marker id="ah" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+                  <path d="M0,0 L9,4.5 L0,9 z" fill="#009100"/>
+                </marker>
+              </defs>
+
+              <rect x="30" y="70" width="330" height="400" rx="10" fill="#ffffff" stroke="#E6E6E5"/>
+              <text x="50" y="102" font-size="15" font-weight="800" fill="#0A0E0A">P1 映射列表（主界面）</text>
+              <text x="50" y="122" font-size="11" fill="#9D9F9D">查询条件区 + 工具栏 + 列表（含行内操作列）+ 分页</text>
+              <line x1="30" y1="136" x2="360" y2="136" stroke="#F8F7F7"/>
+
+              <text x="50" y="156" font-size="11" fill="#9D9F9D">工具栏</text>
+              <g font-size="12" text-anchor="middle">
+                <rect x="50" y="164" width="118" height="26" rx="5" fill="#E9FAEB" stroke="#B7E0B9"/><text x="109" y="181" fill="#007400" font-weight="700">新增 B01</text>
+                <rect x="50" y="194" width="118" height="26" rx="5" fill="#E9FAEB" stroke="#B7E0B9"/><text x="109" y="211" fill="#007400" font-weight="700">删除 B03</text>
+                <rect x="50" y="224" width="118" height="26" rx="5" fill="#F8F8F8" stroke="#E6E6E5"/><text x="109" y="241" fill="#9D9F9D" font-weight="700">启用 B07</text>
+                <rect x="50" y="254" width="118" height="26" rx="5" fill="#E9FAEB" stroke="#B7E0B9"/><text x="109" y="271" fill="#007400" font-weight="700">停用 B08</text>
+                <rect x="50" y="284" width="118" height="26" rx="5" fill="#E9FAEB" stroke="#B7E0B9"/><text x="109" y="301" fill="#007400" font-weight="700">导入 B05</text>
+                <rect x="50" y="314" width="118" height="26" rx="5" fill="#E9FAEB" stroke="#B7E0B9"/><text x="109" y="331" fill="#007400" font-weight="700">导出 B06</text>
+              </g>
+              <text x="180" y="241" font-size="11.5" fill="#9D9F9D">直接执行，无弹窗（B07）</text>
+
+              <text x="50" y="366" font-size="11" fill="#9D9F9D">列表行内操作列（每行）</text>
+              <g text-anchor="middle">
+                <rect x="50" y="374" width="118" height="26" rx="5" fill="#E9EEF9" stroke="#B7D7F0"/><text x="109" y="391" font-size="12" fill="#2261DD" font-weight="700">详情 B04</text>
+                <rect x="180" y="374" width="118" height="26" rx="5" fill="#E9EEF9" stroke="#B7D7F0"/><text x="239" y="391" font-size="12" fill="#2261DD" font-weight="700">编辑 B02</text>
+                <rect x="50" y="404" width="118" height="26" rx="5" fill="#E9FAEB" stroke="#B7E0B9"/><text x="109" y="421" font-size="12" fill="#007400" font-weight="700">删除 B03</text>
+                <rect x="180" y="404" width="118" height="26" rx="5" fill="#E9FAEB" stroke="#B7E0B9"/><text x="239" y="421" font-size="11" fill="#007400" font-weight="700">停用/启用 B07·B08</text>
+              </g>
+
+              <rect x="720" y="36" width="370" height="78" rx="10" fill="#FAF6EA" stroke="#E0C98F"/>
+              <text x="740" y="64" font-size="14" font-weight="800" fill="#0A0E0A">P2 新增/编辑映射（弹窗表单）</text>
+              <text x="740" y="88" font-size="11" fill="#3B3E3B">单区：映射信息（物料 / 供应商 / 取货地址 / 是否启用）</text>
+              <text x="1070" y="64" font-size="11" fill="#9D9F9D" text-anchor="end">← 新增 B01 / 行内编辑 B02</text>
+
+              <rect x="720" y="132" width="370" height="62" rx="10" fill="#E9FAEB" stroke="#009100"/>
+              <text x="740" y="157" font-size="14" font-weight="800" fill="#007400">P3 映射详情（只读页）</text>
+              <text x="740" y="178" font-size="11" fill="#3B3E3B">分组卡片展示全部字段</text>
+
+              <g font-size="13">
+                <rect x="720" y="212" width="370" height="48" rx="8" fill="#FAF6EA" stroke="#E0C98F"/>
+                <text x="740" y="241" font-weight="800" fill="#0A0E0A">D1 删除确认框</text>
+                <rect x="720" y="272" width="370" height="48" rx="8" fill="#FAF6EA" stroke="#E0C98F"/>
+                <text x="740" y="301" font-weight="800" fill="#0A0E0A">D2 停用确认框</text>
+                <rect x="720" y="332" width="370" height="48" rx="8" fill="#FAF6EA" stroke="#E0C98F"/>
+                <text x="740" y="361" font-weight="800" fill="#0A0E0A">D3 导入弹窗</text>
+                <rect x="720" y="392" width="370" height="48" rx="8" fill="#FAF6EA" stroke="#E0C98F"/>
+                <text x="740" y="421" font-weight="800" fill="#0A0E0A">D4 导出弹窗</text>
+              </g>
+              <g font-size="11" fill="#9D9F9D" text-anchor="end">
+                <text x="1070" y="241">← 删除 B03（工具栏/行内）</text>
+                <text x="1070" y="301">← 停用 B08（工具栏/行内）</text>
+                <text x="1070" y="361">← 导入 B05</text>
+                <text x="1070" y="421">← 导出 B06</text>
+              </g>
+
+              <g fill="none" stroke="#009100" stroke-width="1.6" stroke-dasharray="6 4" marker-end="url(#ah)">
+                <path d="M168 177 C 430 177, 470 70, 714 70"/>
+                <path d="M168 207 C 430 207, 470 236, 714 236"/>
+                <path d="M168 267 C 430 267, 470 296, 714 296"/>
+                <path d="M168 297 C 430 297, 470 356, 714 356"/>
+                <path d="M168 327 C 430 327, 470 416, 714 416"/>
+                <path d="M168 387 C 430 387, 470 163, 714 163"/>
+                <path d="M298 387 C 450 387, 470 88, 714 88"/>
+                <path d="M168 417 C 430 417, 470 240, 714 240"/>
+                <path d="M298 417 C 450 417, 470 300, 714 300"/>
+              </g>
+
+              <rect x="30" y="490" width="1060" height="120" rx="8" fill="#F8F8F8" stroke="#E6E6E5"/>
+              <line x1="50" y1="515" x2="88" y2="515" stroke="#009100" stroke-width="1.6" stroke-dasharray="6 4"/>
+              <text x="96" y="519" font-size="11.5" fill="#3B3E3B">虚线箭头 = 单击按钮后打开目标弹窗/页面（本原型中均可实际点击体验）</text>
+              <text x="50" y="542" font-size="11.5" fill="#3B3E3B">直接执行、无弹窗：P1【启用 B07】；P2【保存 B09 / 取消 B10】</text>
+              <text x="50" y="561" font-size="11.5" fill="#3B3E3B">P3【编辑 B11 / 返回 B12】；弹窗内【确认 B13/B14】【下载模板 B15】【上传附件 B16】【导出 B17】</text>
+              <text x="50" y="580" font-size="11.5" fill="#3B3E3B">P1 列表每行提供行内操作【详情 / 编辑 / 删除 / 停用·启用】（图中蓝色）；编辑 B02 与详情 B04 仅行内提供、工具栏不设</text>
+              <text x="50" y="599" font-size="11.5" fill="#3B3E3B">同一物料 + 供应商仅可维护一条映射、一个取货地址（R-MD71）；物料/供应商/地址均须启用（R-MD72）</text>
+            </svg>
+          </div>
+        </div>
+        <div class="note-strip">
+          <b>体验路径：</b>P1 每行提供行内操作【详情 / 编辑 / 删除 / 停用·启用】，直接对该行执行；工具栏提供新增、删除、启用、停用、导入、导出，删除/启用/停用为批量操作需先勾选。【新增/编辑】弹出 P2（单区映射信息），保存校验：物料+供应商组合唯一（R-MD71）、物料/供应商/取货地址须启用（R-MD72）。规则演示数据：MK-10001/MK-10003/MK-10007 已被采购数据引用（删除触发 R-MD74）；选择 M-30001 + S-30002 再次新增可体验 R-MD71 组合唯一；停用供应商 S-30005 不出现在下拉中（R-MD72）。
+        </div>
+      </section>
+
+    </div>
+  </main>
+</div>
+
+<!-- ═══════════ D1 删除确认框 ═══════════ -->
+<div class="mask hidden" id="dlg-d1">
+  <div class="modal">
+    <div class="modal-h">删除确认 <span class="dlg-tag">D1 · B13</span>
+      <button class="modal-x" onclick="closeModal('dlg-d1')">✕</button></div>
+    <div class="modal-b"><div class="modal-warn">
+      <div class="warn-ic red">!</div>
+      <div>确认删除选中的 <b id="d1-count">0</b> 条映射记录？<br>
+        <span style="color:var(--muted);font-size:11.5px">映射未被采购订单、取货计划、入库订单引用时方可删除，否则仅可停用（R-MD74）；删除为逻辑删除。</span>
+        <div id="d1-ids" class="mono" style="margin-top:6px;color:var(--muted)"></div>
+      </div></div></div>
+    <div class="modal-f">
+      <button class="btn" onclick="closeModal('dlg-d1')">取消</button>
+      <button class="btn danger" onclick="doDelete()">确 认</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ D2 停用确认框 ═══════════ -->
+<div class="mask hidden" id="dlg-d2">
+  <div class="modal">
+    <div class="modal-h">停用确认 <span class="dlg-tag">D2 · B14</span>
+      <button class="modal-x" onclick="closeModal('dlg-d2')">✕</button></div>
+    <div class="modal-b"><div class="modal-warn">
+      <div class="warn-ic">!</div>
+      <div>确认停用选中的 <b id="d2-count">0</b> 条映射记录？<br>
+        <span style="color:var(--muted);font-size:11.5px">停用后采购下单不再按该映射带出取货地址，历史单据不受影响（R-MD73）。</span>
+        <div id="d2-ids" class="mono" style="margin-top:6px;color:var(--muted)"></div>
+      </div></div></div>
+    <div class="modal-f">
+      <button class="btn" onclick="closeModal('dlg-d2')">取消</button>
+      <button class="btn primary" onclick="doDisable()">确 认</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ D3 导入弹窗 ═══════════ -->
+<div class="mask hidden" id="dlg-d3">
+  <div class="modal">
+    <div class="modal-h">导入映射 <span class="dlg-tag">D3 · B15/B16</span>
+      <button class="modal-x" onclick="closeModal('dlg-d3')">✕</button></div>
+    <div class="modal-b">
+      <div class="fitem"><div class="flabel" style="width:80px">导入模式</div>
+        <div class="fctrl">
+          <label class="radio"><input type="radio" name="d3-mode" value="新增" checked>新增</label>
+          <label class="radio"><input type="radio" name="d3-mode" value="更新">更新</label>
+          <div class="hint" style="line-height:32px">新增：物料+供应商组合须不存在；更新：按物料编码+供应商编码匹配覆盖取货地址</div></div></div>
+      <div class="fitem" style="margin-top:12px"><div class="flabel" style="width:80px">模板文件</div>
+        <div class="fctrl"><button class="btn sm" onclick="toast('映射导入模板下载中…','info')">⬇ 下载模板</button></div></div>
+      <div class="fitem" style="margin-top:12px"><div class="flabel" style="width:80px">选择文件</div>
+        <div class="fctrl"><input type="file" id="d3-file" class="txt" style="padding:5px 8px" accept=".xlsx,.xls"></div></div>
+      <div id="d3-result" class="result-box hidden">
+        导入完成：成功 <b style="color:var(--brand)">8</b> 行，失败 <b style="color:var(--red)">2</b> 行。
+        <a href="javascript:;" onclick="toast('错误明细文件下载中…','info')">下载错误明细</a>
+        <div class="hint">物料/供应商/取货地址必填且须启用；物料+供应商组合唯一（R-MD71、R-MD72）；失败行注明原因</div>
+      </div>
+    </div>
+    <div class="modal-f">
+      <button class="btn" onclick="closeModal('dlg-d3')">取消</button>
+      <button class="btn primary" onclick="doImport()">上传附件</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ D4 导出弹窗 ═══════════ -->
+<div class="mask hidden" id="dlg-d4">
+  <div class="modal">
+    <div class="modal-h">导出映射 <span class="dlg-tag">D4 · B17</span>
+      <button class="modal-x" onclick="closeModal('dlg-d4')">✕</button></div>
+    <div class="modal-b">
+      <div class="fitem"><div class="flabel" style="width:80px">导出范围</div>
+        <div class="fctrl">
+          <label class="radio"><input type="radio" name="d4-scope" value="sel" checked>当前勾选的 <b id="d4-cnt">0</b> 条记录</label><br>
+          <label class="radio"><input type="radio" name="d4-scope" value="query">按当前查询条件（共 <b id="d4-qcnt">0</b> 条）</label><br>
+          <label class="radio"><input type="radio" name="d4-scope" value="all">全部映射</label>
+        </div></div>
+    </div>
+    <div class="modal-f">
+      <button class="btn" onclick="closeModal('dlg-d4')">取消</button>
+      <button class="btn primary" onclick="doExport()">导 出</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ 离开确认（B10） ═══════════ -->
+<div class="mask hidden" id="dlg-leave">
+  <div class="modal" style="width:420px">
+    <div class="modal-h">离开确认 <span class="dlg-tag">B10</span>
+      <button class="modal-x" onclick="closeModal('dlg-leave')">✕</button></div>
+    <div class="modal-b"><div class="modal-warn">
+      <div class="warn-ic">!</div><div id="leave-msg">存在未保存的修改，确定离开？</div></div></div>
+    <div class="modal-f">
+      <button class="btn primary" onclick="closeModal('dlg-leave')">继续编辑</button>
+      <button class="btn" onclick="leaveConfirm()">确定离开</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+/* ================= 工具 ================= */
+const $ = s => document.querySelector(s);
+const $$ = s => Array.from(document.querySelectorAll(s));
+function esc(s){ return String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+function now(){ const d=new Date(), p=n=>String(n).padStart(2,'0');
+  return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`; }
+function toast(msg, type){ type = type || 'info';
+  const d = document.createElement('div'); d.className = 'toast-item toast-' + type; d.textContent = msg;
+  $('#toast').appendChild(d);
+  setTimeout(()=>{ d.style.transition='opacity .3s'; d.style.opacity='0'; setTimeout(()=>d.remove(), 300); }, 2800); }
+function openModal(id){ $('#'+id).classList.remove('hidden'); }
+function closeModal(id){ $('#'+id).classList.add('hidden'); }
+function getRadio(name){ const r = document.querySelector(`input[name="${name}"]:checked`); return r ? r.value : null; }
+function setRadio(name, v){ $$(`input[name="${name}"]`).forEach(r => r.checked = r.value === v); }
+function toggleAll(src, tbodySel){ $$(tbodySel + ' .row-check').forEach(c => c.checked = src.checked); }
+
+/* ================= 模拟数据：物料（PRD-MD-003） ================= */
+const MATERIALS = {
+  'M-30001': { name:'无线蓝牙耳机 X3 Pro', enabled:true },
+  'M-30002': { name:'智能温控柜 800L', enabled:true },
+  'M-30003': { name:'锂电池组 48V 20Ah', enabled:true },
+  'M-30004': { name:'ABS 阻燃料 25kg 装', enabled:true },
+  'M-30005': { name:'印刷电路板 PCBA-A12', enabled:true },
+  'M-30006': { name:'工业乙醇（分析纯）', enabled:false },
+  'M-30007': { name:'瓦楞纸箱坯料（平板）', enabled:true },
+  'M-30008': { name:'产品说明书（中英文）', enabled:true }
+};
+
+/* ================= 模拟数据：供应商（PRD-MD-004） ================= */
+const SUPPLIERS = {
+  'S-30001': { name:'宁波海通精密部件有限公司', enabled:true },
+  'S-30002': { name:'上海申达电子科技有限公司', enabled:true },
+  'S-30003': { name:'东莞精工模具有限公司', enabled:true },
+  'S-30004': { name:'苏州华成金属材料有限公司', enabled:true },
+  'S-30005': { name:'广州锐迅包装材料有限公司', enabled:false },
+  'S-30006': { name:'成都川力机械制造有限公司', enabled:true },
+  'S-30007': { name:'武汉长丰汽车零部件有限公司', enabled:true },
+  'S-30008': { name:'合肥新越智能装备有限公司', enabled:true }
+};
+
+/* ================= 模拟数据：地址（PRD-MD-007） ================= */
+const ADDRESSES = {
+  'AD-80001': { name:'上海青浦工厂', enabled:true },
+  'AD-80002': { name:'苏州园区收货点', enabled:true },
+  'AD-80003': { name:'宁波北仑港仓', enabled:true },
+  'AD-80004': { name:'广州黄埔配送中心', enabled:true },
+  'AD-80005': { name:'成都双流转运点', enabled:false },
+  'AD-80006': { name:'武汉东西湖仓', enabled:true },
+  'AD-80007': { name:'合肥高新收货点', enabled:true },
+  'AD-80008': { name:'深圳南山客户点', enabled:false }
+};
+
+/* ================= 模拟数据：映射（uid 为系统内部标识，不作为业务字段展示） ================= */
+let mappings = [
+  { uid:'MAP-10001', mat:'M-30001', sup:'S-30002', addr:'AD-80001', enabled:true, referenced:true,  updateTime:'2026-11-18 14:22:31' },
+  { uid:'MAP-10002', mat:'M-30001', sup:'S-30001', addr:'AD-80003', enabled:true, referenced:false, updateTime:'2026-11-16 09:05:12' },
+  { uid:'MAP-10003', mat:'M-30002', sup:'S-30006', addr:'AD-80006', enabled:true, referenced:true,  updateTime:'2026-11-10 16:44:03' },
+  { uid:'MAP-10004', mat:'M-30003', sup:'S-30004', addr:'AD-80002', enabled:true, referenced:false, updateTime:'2026-11-19 11:30:45' },
+  { uid:'MAP-10005', mat:'M-30004', sup:'S-30004', addr:'AD-80002', enabled:true, referenced:false, updateTime:'2026-11-12 10:18:26' },
+  { uid:'MAP-10006', mat:'M-30005', sup:'S-30002', addr:'AD-80001', enabled:false, referenced:false, updateTime:'2026-11-20 09:55:33' },
+  { uid:'MAP-10007', mat:'M-30007', sup:'S-30007', addr:'AD-80006', enabled:true, referenced:true,  updateTime:'2026-11-17 15:02:57' },
+  { uid:'MAP-10008', mat:'M-30008', sup:'S-30002', addr:'AD-80001', enabled:true, referenced:false, updateTime:'2026-11-05 13:40:19' }
+];
+
+/* ================= 创建时间（模拟：按更新时间回溯） ================= */
+const CREATED_BACK_DAYS = [186, 145, 210, 122, 168, 99, 240, 74];
+mappings.forEach((c, i) => {
+  const d = new Date(c.updateTime.replace(/-/g, '/'));
+  d.setDate(d.getDate() - CREATED_BACK_DAYS[i]);
+  const p = n => String(n).padStart(2, '0');
+  c.createdAt = `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} 09:00:00`;
+});
+const matName = c => (MATERIALS[c.mat] ? MATERIALS[c.mat].name : '—');
+const supName = c => (SUPPLIERS[c.sup] ? SUPPLIERS[c.sup].name : '—');
+const addrName = c => (ADDRESSES[c.addr] ? ADDRESSES[c.addr].name : '—');
+const rowLabel = c => `${c.mat} / ${c.sup} / ${c.addr}`;
+
+/* ================= 状态 ================= */
+let sel = new Set();
+let pending = [];
+let editingId = null;
+let draft = null;
+let formDirty = false;
+let currentDetailId = null;
+
+/* ================= 界面切换 ================= */
+function switchScreen(k){
+  $$('section[id^="screen-"]').forEach(x => x.classList.add('hidden'));
+  $('#screen-' + k).classList.remove('hidden');
+  $$('.ptab').forEach(t => t.classList.toggle('active', t.dataset.k === k));
+}
+function toggleSec(h){ h.parentElement.classList.toggle('closed'); }
+function ensureSec(i){
+  const s = $$('#dlg-p2 .sec')[i];
+  if (!s) return;
+  s.classList.remove('closed');
+  s.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+/* ================= P1 列表 ================= */
+function getFiltered(){
+  const q = { mcode: $('#q-mcode').value.trim().toLowerCase(), mname: $('#q-mname').value.trim(),
+              scode: $('#q-scode').value.trim().toLowerCase(), sname: $('#q-sname').value.trim(),
+              addr: $('#q-addr').value.trim(), enabled: $('#q-enabled').value,
+              d1: $('#q-date1').value, d2: $('#q-date2').value };
+  return mappings.filter(c => {
+    const mn = matName(c), sn = supName(c), an = addrName(c);
+    return (!q.mcode || c.mat.toLowerCase().includes(q.mcode)) &&
+      (!q.mname || mn.includes(q.mname)) &&
+      (!q.scode || c.sup.toLowerCase().includes(q.scode)) &&
+      (!q.sname || sn.includes(q.sname)) &&
+      (!q.addr || an.includes(q.addr) || c.addr.toLowerCase().includes(q.addr.toLowerCase())) &&
+      (q.enabled === '全部' || (q.enabled === '是') === c.enabled) &&
+      (!q.d1 || c.createdAt.slice(0, 10) >= q.d1) &&
+      (!q.d2 || c.createdAt.slice(0, 10) <= q.d2);
+  });
+}
+function renderList(){
+  if ($('#q-date1').value && $('#q-date2').value && $('#q-date1').value > $('#q-date2').value)
+    toast('创建时间止日期需不早于起日期', 'error');
+  const list = getFiltered();
+  $('#p1-count').textContent = list.length;
+  $('#p1-selcount').textContent = sel.size;
+  $('#p1-tbody').innerHTML = list.map(c => `
+    <tr data-id="${esc(c.uid)}" class="${sel.has(c.uid) ? 'selected' : ''}">
+      <td class="c-check"><input type="checkbox" ${sel.has(c.uid) ? 'checked' : ''}></td>
+      <td class="mono">${esc(c.mat)}</td>
+      <td>${esc(matName(c))}</td>
+      <td class="mono">${esc(c.sup)}</td>
+      <td>${esc(supName(c))}</td>
+      <td>${esc(addrName(c))}</td>
+      <td>${c.enabled ? '<span class="status green">是</span>' : '<span class="status gray">否</span>'}</td>
+      <td class="muted mono">${esc(c.updateTime)}</td>
+      <td class="c-act">
+        <button class="act" onclick="event.stopPropagation();rowAct('view','${esc(c.uid)}')">详情</button><span class="act-sep">|</span><button class="act" onclick="event.stopPropagation();rowAct('edit','${esc(c.uid)}')">编辑</button><span class="act-sep">|</span><button class="act danger" onclick="event.stopPropagation();rowAct('delete','${esc(c.uid)}')">删除</button><span class="act-sep">|</span>${c.enabled
+          ? `<button class="act" onclick="event.stopPropagation();rowAct('disable','${esc(c.uid)}')">停用</button>`
+          : `<button class="act" onclick="event.stopPropagation();rowAct('enable','${esc(c.uid)}')">启用</button>`}
+      </td>
+    </tr>`).join('') || `<tr><td colspan="9" class="empty">未查询到符合条件的映射记录</td></tr>`;
+  $$('#p1-tbody tr[data-id]').forEach(tr =>
+    tr.addEventListener('click', () => { const id = tr.dataset.id;
+      sel.has(id) ? sel.delete(id) : sel.add(id); renderList(); }));
+  $('#ck-all').checked = list.length > 0 && list.every(c => sel.has(c.uid));
+}
+function resetQuery(){
+  ['q-mcode','q-mname','q-scode','q-sname','q-addr','q-date1','q-date2'].forEach(id => $('#'+id).value = '');
+  $('#q-enabled').value = '全部'; renderList();
+}
+$('#ck-all').addEventListener('change', function(){
+  const list = getFiltered();
+  if (this.checked) list.forEach(c => sel.add(c.uid)); else list.forEach(c => sel.delete(c.uid));
+  renderList();
+});
+
+/* ================= P1 工具栏 ================= */
+function tb(action){
+  const arr = [...sel].map(id => mappings.find(c => c.uid === id)).filter(Boolean);
+  if (action === 'add') { openForm('new'); return; }
+  if (action === 'import') { openModal('dlg-d3'); return; }
+  if (action === 'export') {
+    $('#d4-cnt').textContent = sel.size; $('#d4-qcnt').textContent = getFiltered().length;
+    openModal('dlg-d4'); return;
+  }
+  if (!arr.length) { toast('请先勾选映射记录', 'error'); return; }
+  const ids = arr.map(c => rowLabel(c)).join('、');
+  switch (action) {
+    case 'delete':
+      pending = arr.map(c => c.uid);
+      $('#d1-count').textContent = arr.length; $('#d1-ids').textContent = ids; openModal('dlg-d1'); break;
+    case 'disable': {
+      const ok = arr.filter(c => c.enabled);
+      if (!ok.length) { toast('请勾选"是否启用=是"的映射记录', 'error'); return; }
+      pending = ok.map(c => c.uid);
+      $('#d2-count').textContent = ok.length; $('#d2-ids').textContent = ok.map(c => rowLabel(c)).join('；');
+      openModal('dlg-d2'); break; }
+    case 'enable': {
+      const ok = arr.filter(c => !c.enabled);
+      if (!ok.length) { toast('请勾选"是否启用=否"的映射记录', 'error'); return; }
+      ok.forEach(c => c.enabled = true); renderList();
+      toast(`已启用 ${ok.length} 条映射记录`, 'success'); break; }
+  }
+}
+function rowAct(action, id){
+  const c = mappings.find(x => x.uid === id); if (!c) return;
+  switch (action) {
+    case 'view': openDetail(id); break;
+    case 'edit': openForm('edit', id); break;
+    case 'delete':
+      pending = [id];
+      $('#d1-count').textContent = 1; $('#d1-ids').textContent = rowLabel(c); openModal('dlg-d1'); break;
+    case 'disable':
+      pending = [id];
+      $('#d2-count').textContent = 1; $('#d2-ids').textContent = rowLabel(c); openModal('dlg-d2'); break;
+    case 'enable':
+      c.enabled = true; renderList();
+      toast('已启用该映射记录', 'success'); break;
+  }
+}
+
+/* ================= 弹窗动作 ================= */
+function doDelete(){
+  const arr = pending.map(id => mappings.find(c => c.uid === id)).filter(Boolean);
+  const bad = arr.filter(c => c.referenced);
+  closeModal('dlg-d1'); pending = [];
+  if (bad.length) { toast(`映射 ${bad.map(c => rowLabel(c)).join('；')} 已被业务数据引用，不可删除，请使用停用（R-MD74）`, 'error'); return; }
+  mappings = mappings.filter(c => !arr.some(x => x.uid === c.uid));
+  arr.forEach(c => sel.delete(c.uid));
+  renderList();
+  toast(`已删除 ${arr.length} 条映射记录（逻辑删除）`, 'success');
+}
+function doDisable(){
+  const arr = pending.map(id => mappings.find(c => c.uid === id)).filter(Boolean);
+  arr.forEach(c => c.enabled = false);
+  closeModal('dlg-d2'); pending = []; renderList();
+  toast(`已停用 ${arr.length} 条映射记录`, 'success');
+}
+function doImport(){
+  if (!$('#d3-file').value) { toast('请先选择要导入的文件', 'error'); return; }
+  const mode = getRadio('d3-mode');
+  $('#d3-result').classList.remove('hidden');
+  toast(`导入完成（${mode}模式）：成功 8 行，失败 2 行`, 'warn');
+}
+function doExport(){
+  const scope = getRadio('d4-scope');
+  const label = scope === 'sel' ? '当前勾选记录' : scope === 'query' ? '当前查询条件' : '全部映射';
+  closeModal('dlg-d4');
+  toast(`已按【${label}】范围生成 Excel 文件并开始下载`, 'success');
+}
+
+/* ================= P2 表单 ================= */
+function markDirty(){ formDirty = true; }
+function selectOptions(map, selected, placeholder){
+  const enabled = Object.keys(map).filter(k => map[k].enabled);
+  let opts = `<option value="">${placeholder}</option>` + enabled.map(code =>
+    `<option value="${code}" ${code === selected ? 'selected' : ''}>${code} ${esc(map[code].name)}</option>`).join('');
+  if (selected && map[selected] && !map[selected].enabled) {
+    opts = `<option value="${selected}" selected>${selected} ${esc(map[selected].name)}（已停用）</option>` + opts;
+  }
+  return opts;
+}
+function openForm(mode, id){
+  editingId = mode === 'edit' ? id : null;
+  const src = mode === 'edit' ? mappings.find(c => c.uid === id) : null;
+  draft = src ? JSON.parse(JSON.stringify(src))
+              : { uid:'', mat:'', sup:'', addr:'', enabled:true, referenced:false };
+  $('#p2-title').textContent = mode === 'edit' ? '编辑映射' : '新增映射';
+  $('#p2-tag').textContent = mode === 'edit' ? 'P2 编辑模式' : 'P2 新增模式';
+  $('#f-mat').innerHTML = selectOptions(MATERIALS, draft.mat, '请选择物料');
+  $('#f-sup').innerHTML = selectOptions(SUPPLIERS, draft.sup, '请选择供应商');
+  $('#f-addr').innerHTML = selectOptions(ADDRESSES, draft.addr, '请选择取货地址');
+  fillForm();
+  $$('#dlg-p2 .sec').forEach(s => s.classList.remove('closed'));
+  const mb = $('#dlg-p2 .modal-b'); if (mb) mb.scrollTop = 0;
+  formDirty = false; openModal('dlg-p2');
+}
+function fillForm(){
+  $('#f-mname').value = draft.mat && MATERIALS[draft.mat] ? MATERIALS[draft.mat].name : '';
+  $('#f-sname').value = draft.sup && SUPPLIERS[draft.sup] ? SUPPLIERS[draft.sup].name : '';
+  setRadio('f-enabled', draft.enabled ? '是' : '否');
+}
+function onPairChange(){
+  draft.mat = $('#f-mat').value;
+  draft.sup = $('#f-sup').value;
+  $('#f-mname').value = draft.mat && MATERIALS[draft.mat] ? MATERIALS[draft.mat].name : '';
+  $('#f-sname').value = draft.sup && SUPPLIERS[draft.sup] ? SUPPLIERS[draft.sup].name : '';
+  markDirty();
+}
+function onAddrChange(){ draft.addr = $('#f-addr').value; markDirty(); }
+function pairExists(mat, sup, exceptUid){
+  return mappings.some(c => c.mat === mat && c.sup === sup && c.uid !== exceptUid);
+}
+function saveForm(){
+  const mat = $('#f-mat').value, sup = $('#f-sup').value, addr = $('#f-addr').value;
+  if (!mat) { ensureSec(0); toast('请选择物料', 'error'); return; }
+  if (!MATERIALS[mat] || !MATERIALS[mat].enabled) { ensureSec(0); toast('物料未启用，不可选择（R-MD72）', 'error'); return; }
+  if (!sup) { ensureSec(0); toast('请选择供应商', 'error'); return; }
+  if (!SUPPLIERS[sup] || !SUPPLIERS[sup].enabled) { ensureSec(0); toast('供应商未启用，不可选择（R-MD72）', 'error'); return; }
+  if (!addr) { ensureSec(0); toast('请选择取货地址', 'error'); return; }
+  if (!ADDRESSES[addr] || !ADDRESSES[addr].enabled) { ensureSec(0); toast('取货地址未启用，不可选择（R-MD72）', 'error'); return; }
+  if (pairExists(mat, sup, editingId)) {
+    ensureSec(0);
+    toast('该物料 + 供应商的映射已存在，不可维护多个取货地址（R-MD71）', 'error');
+    return;
+  }
+  draft.uid = editingId || ('MAP-' + Date.now());
+  draft.mat = mat; draft.sup = sup; draft.addr = addr;
+  draft.enabled = getRadio('f-enabled') === '是';
+  draft.updateTime = now(); if (!draft.createdAt) draft.createdAt = now();
+  if (editingId) { const i = mappings.findIndex(c => c.uid === editingId); draft.referenced = mappings[i].referenced; mappings[i] = draft; }
+  else { draft.referenced = false; mappings.push(draft); }
+  closeModal('dlg-p2'); sel.clear(); renderList(); editingId = null; formDirty = false;
+  if (!$('#screen-p3').classList.contains('hidden') && currentDetailId) openDetail(currentDetailId);
+  toast('保存成功', 'success');
+}
+function cancelForm(){
+  if (formDirty) openModal('dlg-leave');
+  else { editingId = null; closeModal('dlg-p2'); }
+}
+function leaveConfirm(){ closeModal('dlg-leave'); closeModal('dlg-p2'); editingId = null; formDirty = false; }
+
+/* ================= P3 详情 ================= */
+function openDetail(id){
+  currentDetailId = id;
+  const c = mappings.find(x => x.uid === id); if (!c) return;
+  $('#p3-title').textContent = `映射详情 · ${c.mat} / ${c.sup}`;
+  $('#p3-tags').innerHTML =
+    (c.enabled ? '<span class="status green">启用</span>' : '<span class="status gray">停用</span>') +
+    (c.referenced ? ' <span class="status yellow">已被业务单据引用</span>' : '');
+  $('#p3-base').innerHTML = [
+    ['物料编码', `<span class="mono">${esc(c.mat)}</span>`], ['物料名称', esc(matName(c))],
+    ['供应商编码', `<span class="mono">${esc(c.sup)}</span>`], ['供应商名称', esc(supName(c))],
+    ['取货地址', esc(addrName(c))], ['是否启用', c.enabled ? '是' : '否'],
+    ['最后更新时间', `<span class="mono">${esc(c.updateTime)}</span>`]
+  ].map(([k, v]) => `<div class="detail-field"><span>${k}</span><strong>${v}</strong></div>`).join('');
+  switchScreen('p3');
+}
+function p3Edit(){ if (currentDetailId) openForm('edit', currentDetailId); }
+
+/* ================= 顶部页签切换 ================= */
+$$('.ptab').forEach(t => t.addEventListener('click', () => {
+  const k = t.dataset.k;
+  if (k === 'p2') { openForm(editingId ? 'edit' : 'new', editingId || undefined); return; }
+  if (k === 'p3') { openDetail(currentDetailId || mappings[0].uid); return; }
+  switchScreen(k);
+}));
+
+/* ================= 弹窗遮罩点击关闭 ================= */
+$$('.mask').forEach(m => m.addEventListener('click', e => {
+  if (e.target !== m) return;
+  if (m.id === 'dlg-p2') { cancelForm(); return; }
+  m.classList.add('hidden');
+}));
+
+/* ================= 初始化 ================= */
+renderList();
+</script>
+</body>
+</html>

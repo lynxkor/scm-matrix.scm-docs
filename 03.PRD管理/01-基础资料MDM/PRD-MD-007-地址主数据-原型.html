@@ -1,0 +1,1374 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PRD-MD-007 地址主数据 · 高保真交互原型</title>
+<style>
+  /* ============================================================
+     设计令牌 — 对齐 lcdesign-web（LC Design）视觉基线
+     主色 #009100 · 正文 14px · 表头 #F8F7F7 · 圆角 4/8px
+     ============================================================ */
+  :root {
+    --bg: #F8F8F8; --panel: #FFFFFF; --sidebar-bg: #FFFFFF;
+    --ink: #0A0E0A; --sub: #3B3E3B; --muted: #9D9F9D;
+    --line: #E6E6E5; --line-soft: #F8F7F7;
+    --brand: #009100; --brand-hover: #00A800; --brand-dark: #007400;
+    --brand-weak: #E9FAEB; --brand-edge: #B7E0B9;
+    --red: #B91919; --red-weak: #F8E8E8;
+    --yellow: #C8A12B; --yellow-weak: #FAF6EA;
+    --blue: #2261DD; --blue-weak: #E9EEF9;
+    --shadow: 0 4px 10px rgba(10, 14, 10, .12);
+    --shadow-lg: 0 10px 24px rgba(10, 14, 10, .15);
+    --radius: 8px; --radius-sm: 4px; --radius-pill: 999px;
+    --t-fast: .15s ease;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { color: var(--sub); background: var(--bg); line-height: 1.5;
+         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", "PingFang SC", "Noto Sans SC", sans-serif;
+         font-size: 14px; }
+  button, select, textarea, input { font: inherit; }
+  button { cursor: pointer; }
+  .hidden { display: none !important; }
+  .mono { font-family: "SF Mono", Consolas, monospace; font-size: 13px; }
+  .muted { color: var(--muted); }
+
+  /* ===== 原型导航条 ===== */
+  .proto-bar { position: sticky; top: 0; z-index: 95; display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+               min-height: 64px; padding: 10px 16px; background: #fff; border-bottom: 1px solid var(--line); }
+  .proto-bar .pb-t { font-size: 16px; font-weight: 600; color: var(--ink); }
+  .proto-bar .pb-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .ptabs { display: flex; gap: 4px; margin-left: auto; flex-wrap: wrap; }
+  .ptab { height: 32px; padding: 0 12px; border: 0; border-radius: var(--radius-sm); background: transparent;
+          color: var(--sub); font-size: 14px; transition: all var(--t-fast); }
+  .ptab:hover { background: var(--line-soft); color: var(--brand); }
+  .ptab.active { background: var(--brand-weak); color: var(--brand); font-weight: 600; }
+
+  /* ===== 平台框架 ===== */
+  .app { display: flex; min-height: calc(100vh - 64px); }
+  .sidebar { width: 200px; flex-shrink: 0; background: var(--sidebar-bg); border-right: 1px solid var(--line);
+             padding: 12px 8px; position: sticky; top: 64px; height: calc(100vh - 64px); overflow-y: auto; }
+  .sb-brand { display: flex; gap: 8px; align-items: center; height: 40px; padding: 0 8px 8px; }
+  .sb-mark { width: 28px; height: 28px; border-radius: var(--radius-sm); display: grid; place-items: center;
+             color: #fff; font-weight: 600; font-size: 12px; background: var(--brand); }
+  .sb-brand strong { font-size: 14px; font-weight: 600; color: var(--ink); }
+  .sb-group { color: var(--muted); font-size: 12px; padding: 12px 8px 4px; }
+  .sb-item { display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 12px;
+             border-radius: var(--radius-sm); font-size: 14px; color: var(--sub); transition: all var(--t-fast); }
+  .sb-item:hover { background: var(--line-soft); color: var(--brand); }
+  .sb-item.active { background: var(--brand-weak); color: var(--brand); font-weight: 500; }
+  .main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .topbar { min-height: 56px; background: #fff; border-bottom: 1px solid var(--line);
+            display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 0 16px;
+            position: sticky; top: 64px; z-index: 90; }
+  .page-head { display: flex; align-items: baseline; gap: 16px; min-width: 0; flex-wrap: wrap; }
+  .page-title { font-size: 16px; font-weight: 500; color: var(--ink); }
+  .page-sub { font-size: 14px; color: var(--sub); }
+  .user-chip { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--sub); }
+  .user-chip .ava { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center;
+                    color: #fff; font-size: 12px; font-weight: 600; background: var(--brand); }
+  .content { flex: 1; padding: 16px 16px 24px; min-width: 0; }
+
+  /* ===== 卡片 ===== */
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); margin-bottom: 16px; overflow: hidden; }
+  .card-h { min-height: 48px; padding: 0 16px; border-bottom: 1px solid var(--line-soft); font-weight: 600; font-size: 14px;
+            color: var(--ink); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .card-b { padding: 16px; }
+
+  /* ===== 按钮 ===== */
+  .btn { height: 32px; padding: 0 16px; border: 1px solid var(--line); border-radius: var(--radius-sm);
+         color: var(--sub); background: #fff; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+         font-size: 14px; line-height: 1; transition: all var(--t-fast); }
+  .btn:hover { border-color: var(--brand); color: var(--brand); }
+  .btn:focus-visible { outline: 2px solid var(--brand-weak); outline-offset: 1px; }
+  .btn.primary { color: #fff; border-color: var(--brand); background: var(--brand); }
+  .btn.primary:hover { background: var(--brand-hover); border-color: var(--brand-hover); color: #fff; }
+  .btn.danger { color: #fff; border-color: var(--red); background: var(--red); }
+  .btn.danger:hover { opacity: .9; color: #fff; }
+  .btn.sm { height: 28px; padding: 0 10px; font-size: 13px; }
+
+  /* ===== 表格 ===== */
+  table { width: 100%; border-collapse: collapse; font-size: 14px; color: var(--sub); }
+  th, td { padding: 12px; border-bottom: 1px solid var(--line-soft); text-align: left; vertical-align: middle; }
+  th { color: var(--sub); background: var(--line-soft); font-weight: 600; white-space: nowrap; border-bottom: 1px solid var(--line); }
+  tbody tr { transition: background var(--t-fast); }
+  tbody tr:hover { background: var(--line-soft); }
+  table.stripe tbody tr:nth-child(even),
+  #p3-tenant tbody tr:nth-child(even),
+  #p3-attach tbody tr:nth-child(even) { background: #FCFBFB; }
+  tbody tr.selected, tbody tr.selected:hover { background: var(--brand-weak); }
+  .c-check { text-align: center; width: 40px; }
+
+  /* ===== 行内操作列 ===== */
+  .c-act { white-space: nowrap; }
+  .act { border: 0; background: none; padding: 0; height: auto; font-size: 13px; line-height: 20px;
+         color: var(--brand); text-decoration: none; transition: color var(--t-fast); }
+  .act:hover { color: var(--brand-hover); text-decoration: underline; }
+  .act:focus-visible { outline: 2px solid var(--brand-weak); outline-offset: 2px; border-radius: 2px; }
+  .act.danger { color: var(--red); }
+  .act.danger:hover { color: #D32020; text-decoration: underline; }
+  .act-sep { color: var(--line); margin: 0 6px; font-size: 12px; }
+  td.empty { text-align: center; color: var(--muted); padding: 32px 12px; }
+  .link { color: var(--blue); text-decoration: none; }
+  .link:hover { text-decoration: underline; }
+
+  /* ===== 标签 ===== */
+  .status { display: inline-flex; align-items: center; gap: 4px; height: 22px; border-radius: var(--radius-sm);
+            padding: 0 10px; border: 1px solid transparent; font-size: 12px; font-weight: 500; white-space: nowrap; }
+  .status.green { color: var(--brand); background: var(--brand-weak); border-color: var(--brand-edge); }
+  .status.gray { color: var(--sub); background: var(--line-soft); border-color: var(--line); }
+  .status.blue { color: var(--blue); background: var(--blue-weak); border-color: #D6E0F5; }
+  .status.yellow { color: #8C6D12; background: var(--yellow-weak); border-color: #EFE3BF; }
+  .status.red { color: var(--red); background: var(--red-weak); border-color: #F0D0D0; }
+
+  /* ===== 查询区 ===== */
+  .qgrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px 24px; }
+  .qitem { display: flex; align-items: center; gap: 8px; }
+  .qlabel { width: 96px; text-align: right; font-size: 14px; color: var(--sub); flex-shrink: 0; }
+  .qact { display: flex; gap: 8px; align-items: center; justify-content: flex-start; }
+  .qrange { display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0; }
+  .qrange .txt { min-width: 0; }
+
+  /* ===== 输入控件 ===== */
+  .txt, .sel { width: 100%; height: 32px; padding: 0 12px; border: 1px solid var(--line);
+               border-radius: var(--radius-sm); font-size: 14px; color: var(--sub); background: #fff; outline: none;
+               transition: border-color var(--t-fast); }
+  .txt::placeholder, .ta::placeholder { color: var(--muted); }
+  .txt:focus, .sel:focus, .ta:focus { border-color: var(--brand); }
+  .txt:disabled, .sel:disabled { background: var(--bg); color: var(--muted); cursor: not-allowed; }
+  .ta { width: 100%; min-height: 72px; padding: 8px 12px; border: 1px solid var(--line); border-radius: var(--radius-sm);
+        font-size: 14px; color: var(--sub); background: #fff; outline: none; resize: vertical; transition: border-color var(--t-fast); }
+  input[type="checkbox"], input[type="radio"] { accent-color: var(--brand); margin: 0; }
+
+  /* ===== 工具栏 / 分页 ===== */
+  .toolbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--line-soft); }
+  .toolbar .sep { width: 1px; height: 16px; background: var(--line); margin: 0 4px; }
+  .pager { display: flex; justify-content: flex-end; align-items: center; gap: 8px; padding: 12px 16px;
+           color: var(--sub); font-size: 14px; flex-wrap: wrap; }
+  .pager b { color: var(--ink); font-weight: 600; }
+  .pg-btn { min-width: 24px; height: 24px; padding: 0 6px; border: 1px solid var(--line); background: #fff; border-radius: var(--radius-sm);
+            font-size: 13px; color: var(--sub); }
+  .pg-btn:hover { border-color: var(--brand); color: var(--brand); }
+  .pg-btn.active { border-color: var(--brand); color: var(--brand); font-weight: 600; }
+  .pg-sel { height: 28px; width: auto; padding: 0 8px; font-size: 13px; }
+  .pg-jump { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); }
+  .pg-input { width: 44px; height: 28px; padding: 0 8px; border: 1px solid var(--line); border-radius: var(--radius-sm);
+              text-align: center; color: var(--sub); background: #fff; outline: none; }
+  .pg-input:focus { border-color: var(--brand); }
+
+  /* ===== P2 表单弹窗 ===== */
+  .modal.lg { width: 920px; max-width: 96vw; max-height: 88vh; display: flex; flex-direction: column; }
+  .modal.lg .modal-b { flex: 1; overflow-y: auto; padding: 16px; }
+  .sec { border: 1px solid var(--line); border-radius: var(--radius); margin-bottom: 12px; background: #fff; overflow: hidden; }
+  .sec-h { display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 16px; background: var(--line-soft);
+           font-weight: 600; font-size: 14px; color: var(--ink); cursor: pointer; user-select: none; transition: background var(--t-fast); }
+  .sec-h:hover { background: var(--brand-weak); }
+  .sec-h .arrow { font-size: 10px; color: var(--brand); transition: transform var(--t-fast); display: inline-block; }
+  .sec.closed .arrow { transform: rotate(-90deg); }
+  .sec-h .cnt { margin-left: auto; font-size: 12px; color: var(--muted); font-weight: 400; }
+  .sec-b { padding: 16px; border-top: 1px solid var(--line-soft); }
+  .sec.closed .sec-b { display: none; }
+  .fgrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 24px; }
+  .fitem { display: flex; align-items: flex-start; }
+  .flabel { width: 122px; text-align: right; padding-right: 12px; color: var(--sub); font-size: 14px;
+            flex-shrink: 0; line-height: 32px; }
+  .flabel .req { color: var(--red); margin-right: 4px; }
+  .fctrl { flex: 1; min-width: 0; }
+  .span2 { grid-column: 1 / -1; }
+  .hint { font-size: 12px; color: var(--muted); margin-top: 4px; line-height: 1.5; }
+  .radio { display: inline-flex; align-items: center; gap: 6px; margin-right: 16px; line-height: 32px; cursor: pointer; font-size: 14px; color: var(--sub); }
+  .form-f { min-height: 56px; padding: 0 16px; border-top: 1px solid var(--line); display: flex; align-items: center;
+            justify-content: flex-end; gap: 8px; background: #fff; }
+  .sub-tb-bar { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; flex-wrap: wrap; }
+  .sub-tb-bar .hint { margin: 0 0 0 auto; }
+  .region-row { display: flex; gap: 8px; }
+  .region-row .sel { min-width: 0; }
+
+  /* ===== P3 详情页 ===== */
+  .dcard { border: 1px solid var(--line); border-radius: var(--radius); margin-bottom: 16px; overflow: hidden; }
+  .dcard-t { min-height: 44px; padding: 0 16px; background: var(--line-soft); border-bottom: 1px solid var(--line-soft);
+             font-weight: 600; font-size: 14px; color: var(--ink); display: flex; gap: 8px; align-items: center; }
+  .dcard-b { padding: 16px; }
+  .detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .detail-field { padding: 12px; border: 1px solid var(--line-soft); border-radius: var(--radius-sm); background: #FCFBFB; }
+  .detail-field span { display: block; color: var(--muted); font-size: 12px; }
+  .detail-field strong { display: block; margin-top: 4px; font-size: 14px; font-weight: 500; color: var(--ink); word-break: break-all; }
+
+  /* ===== 弹窗 ===== */
+  .mask { position: fixed; inset: 0; background: rgba(10, 14, 10, .4); display: flex; align-items: flex-start;
+          justify-content: center; padding-top: 8vh; z-index: 100; }
+  .modal { width: 500px; max-width: 92vw; background: #fff; border-radius: var(--radius); box-shadow: var(--shadow-lg);
+           animation: pop .18s ease; }
+  @keyframes pop { from { transform: scale(.96); opacity: 0; } }
+  .modal-h { min-height: 52px; padding: 0 20px; font-weight: 600; font-size: 16px; color: var(--ink);
+             border-bottom: 1px solid var(--line-soft); display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+  .dlg-tag { font-size: 12px; font-weight: 500; font-family: "SF Mono", Consolas, monospace;
+             background: var(--brand-weak); color: var(--brand); border-radius: var(--radius-sm); padding: 2px 8px; }
+  .modal-x { border: 0; background: none; color: var(--muted); font-size: 16px; line-height: 1; }
+  .modal-x:hover { color: var(--ink); }
+  .modal-b { padding: 20px; font-size: 14px; color: var(--sub); line-height: 1.6; }
+  .modal-f { min-height: 56px; padding: 0 20px; border-top: 1px solid var(--line-soft); display: flex;
+             align-items: center; justify-content: flex-end; gap: 8px; }
+  .modal-warn { display: flex; gap: 12px; align-items: flex-start; }
+  .warn-ic { width: 26px; height: 26px; border-radius: 50%; background: var(--yellow-weak); color: var(--yellow);
+             font-weight: 600; display: grid; place-items: center; flex-shrink: 0; font-size: 14px; }
+  .warn-ic.red { background: var(--red-weak); color: var(--red); }
+  .result-box { margin-top: 12px; background: var(--yellow-weak); border: 1px solid #EFE3BF; border-radius: var(--radius-sm); padding: 12px; }
+  .result-box a { color: var(--blue); }
+
+  /* ===== Toast ===== */
+  #toast { position: fixed; left: 50%; top: 80px; transform: translateX(-50%); z-index: 300;
+           display: flex; flex-direction: column; gap: 8px; align-items: center; }
+  .toast-item { padding: 10px 16px; border-radius: var(--radius-sm); color: #fff; font-size: 14px;
+                box-shadow: var(--shadow); animation: tin .2s ease; max-width: 80vw; }
+  @keyframes tin { from { opacity: 0; transform: translateY(-8px); } }
+  .toast-info { background: var(--sub); }
+  .toast-success { background: var(--brand); }
+  .toast-error { background: var(--red); }
+  .toast-warn { background: var(--yellow); }
+
+  /* ===== P9 关系图 ===== */
+  .p9-svg { width: 100%; height: auto; display: block; min-width: 900px; }
+  .p9-wrap { overflow-x: auto; }
+  .note-strip { border: 1px solid var(--brand-edge); background: #F6FBF6; border-radius: var(--radius);
+                padding: 12px 16px; font-size: 14px; color: var(--sub); line-height: 1.6; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════ 原型导航条 ═══════════ -->
+<div class="proto-bar">
+  <div>
+    <div class="pb-t">PRD-MD-007 地址主数据 · 高保真交互原型</div>
+    <div class="pb-sub">基础资料 MDM · 贸易伙伴-地址 · V1.0（草稿） · 实现 P1/P2/P3/P9 + D1~D4，按钮 B01~B22 与规则 R-MD57~R-MD64 以模拟数据实现，可点击体验</div>
+  </div>
+  <div class="ptabs">
+    <button class="ptab active" data-k="p1">P1 地址列表</button>
+    <button class="ptab" data-k="p2">P2 表单弹窗</button>
+    <button class="ptab" data-k="p3">P3 地址详情</button>
+    <button class="ptab" data-k="p9">P9 按钮关系总览</button>
+  </div>
+</div>
+
+<div class="app">
+  <!-- ═══════════ 左侧菜单 ═══════════ -->
+  <aside class="sidebar">
+    <div class="sb-brand"><div class="sb-mark">OT</div><strong>OTWB 平台</strong></div>
+    <div class="sb-group">基础资料</div>
+    <div class="sb-item">客户</div>
+    <div class="sb-item">承运商</div>
+    <div class="sb-item">供应商</div>
+    <div class="sb-item">司机</div>
+    <div class="sb-item">车辆</div>
+    <div class="sb-item">物料</div>
+    <div class="sb-item active">地址</div>
+    <div class="sb-group">订单管理 OMS</div>
+    <div class="sb-item">销售订单</div>
+    <div class="sb-item">发货订单</div>
+    <div class="sb-group">运输管理 TMS</div>
+    <div class="sb-item">运单</div>
+    <div class="sb-item">配载计划</div>
+    <div class="sb-group">结算管理 BMS</div>
+    <div class="sb-item">应收凭证</div>
+    <div class="sb-item">对账单</div>
+    <div class="sb-group">系统管理</div>
+    <div class="sb-item">用户与角色</div>
+  </aside>
+
+  <!-- ═══════════ 主区域 ═══════════ -->
+  <main class="main">
+    <div class="topbar">
+      <div class="page-head">
+        <span class="page-title">地址主数据</span>
+        <span class="page-sub">基础资料 / 贸易伙伴 / 地址 · 维护作业地址、联系信息、电子围栏与提货指引</span>
+      </div>
+      <div class="user-chip"><div class="ava">张</div>主数据管理员 · 张三</div>
+    </div>
+
+    <div class="content">
+
+      <!-- ═══════════ P1 地址列表 ═══════════ -->
+      <section id="screen-p1">
+        <div class="card">
+          <div class="card-b">
+            <div class="qgrid">
+              <div class="qitem"><div class="qlabel">地址编码</div><input class="txt" id="q-code" placeholder="支持模糊匹配"></div>
+              <div class="qitem"><div class="qlabel">地址名称</div><input class="txt" id="q-name" placeholder="支持模糊匹配"></div>
+              <div class="qitem"><div class="qlabel">地区</div><input class="txt" id="q-region" placeholder="省/市/区，模糊匹配"></div>
+              <div class="qitem"><div class="qlabel">分配区域</div>
+                <select class="sel" id="q-alloc"><option>全部</option><option>华东</option><option>华南</option><option>华北</option><option>华中</option><option>西南</option><option>西北</option><option>东北</option></select></div>
+              <div class="qitem"><div class="qlabel">是否启用</div>
+                <select class="sel" id="q-enabled"><option>全部</option><option>是</option><option>否</option></select></div>
+              <div class="qitem"><div class="qlabel">创建时间</div>
+                <div class="qrange"><input class="txt" type="date" id="q-date1" title="开始日期"><span class="muted">~</span><input class="txt" type="date" id="q-date2" title="结束日期"></div></div>
+              <div class="qact" style="margin-top:8px">
+                <button class="btn primary" onclick="renderList()">查 询</button>
+                <button class="btn" onclick="resetQuery()">重 置</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-h">地址列表 <span class="muted" style="font-weight:400;font-size:11px">P1 主界面</span></div>
+          <div class="toolbar">
+            <button class="btn primary" onclick="tb('add')">＋ 新增</button>
+            <button class="btn" onclick="tb('delete')">删除</button>
+            <span class="sep"></span>
+            <button class="btn" onclick="tb('enable')">启用</button>
+            <button class="btn" onclick="tb('disable')">停用</button>
+            <span class="sep"></span>
+            <button class="btn" onclick="tb('import')">导入</button>
+            <button class="btn" onclick="tb('export')">导出</button>
+          </div>
+          <table class="stripe">
+            <thead>
+              <tr>
+                <th class="c-check"><input type="checkbox" id="ck-all"></th>
+                <th>地址编码</th><th>地址名称</th><th>国家</th><th>地区</th><th>详细地址</th>
+                <th>分配区域</th><th>电子围栏</th><th>是否启用</th><th>最后更新时间</th><th style="width:180px">操作</th>
+              </tr>
+            </thead>
+            <tbody id="p1-tbody"></tbody>
+          </table>
+          <div class="pager">
+            <span>共 <b id="p1-count">0</b> 条</span>
+            <span class="muted">已勾选 <b id="p1-selcount">0</b> 条</span>
+            <select class="sel pg-sel" aria-label="每页条数">
+              <option>10 条/页</option><option>20 条/页</option><option>50 条/页</option>
+            </select>
+            <button class="pg-btn" aria-label="上一页">‹</button>
+            <button class="pg-btn active">1</button>
+            <button class="pg-btn" aria-label="下一页">›</button>
+            <span class="pg-jump">前往 <input class="pg-input" value="1" aria-label="页码"> 页</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════════ P2 新增/编辑地址（弹窗表单 · 分区折叠） ═══════════ -->
+      <div class="mask hidden" id="dlg-p2" style="padding-top:60px">
+        <div class="modal lg">
+          <div class="modal-h"><span id="p2-title">新增地址</span>
+            <span class="dlg-tag" id="p2-tag">P2 新增模式</span>
+            <span style="flex:1"></span>
+            <span class="muted" style="font-weight:400;font-size:11px;margin-right:10px">分区纵向展示 · 点击标题栏折叠/展开</span>
+            <button class="modal-x" onclick="cancelForm()">✕</button>
+          </div>
+          <div class="modal-b">
+
+          <!-- 分区1 基本信息 -->
+          <div class="sec">
+            <div class="sec-h" onclick="toggleSec(this)"><span class="arrow">▼</span>基本信息<span class="cnt">必填：地址编码、地址名称、国家、地区、详细地址</span></div>
+            <div class="sec-b">
+            <div class="fgrid">
+              <div class="fitem"><div class="flabel"><span class="req">*</span>地址编码</div>
+                <div class="fctrl"><input class="txt mono" id="f-id" maxlength="30" placeholder="仅字母、数字、-、_" oninput="markDirty()">
+                <div class="hint">地址唯一编码，手工录入；域内唯一（R-MD57），保存后不可修改</div></div></div>
+              <div class="fitem"><div class="flabel"><span class="req">*</span>地址名称</div>
+                <div class="fctrl"><input class="txt" id="f-name" maxlength="120" placeholder="如 上海青浦工厂" oninput="markDirty()"></div></div>
+              <div class="fitem"><div class="flabel"><span class="req">*</span>国家</div>
+                <div class="fctrl"><select class="sel" id="f-country" onchange="markDirty()">
+                  <option>中国</option><option>中国香港</option><option>中国台湾</option><option>美国</option><option>越南</option><option>泰国</option>
+                </select><div class="hint">数据字典：国家</div></div></div>
+              <div class="fitem"><div class="flabel">分配区域</div>
+                <div class="fctrl"><select class="sel" id="f-alloc" onchange="markDirty()">
+                  <option value="">请选择</option><option>华东</option><option>华南</option><option>华北</option>
+                  <option>华中</option><option>西南</option><option>西北</option><option>东北</option>
+                </select><div class="hint">数据字典：分配区域</div></div></div>
+              <div class="fitem span2"><div class="flabel"><span class="req">*</span>地区</div>
+                <div class="fctrl">
+                  <div class="region-row">
+                    <select class="sel" id="f-prov" onchange="onProvChange()"></select>
+                    <select class="sel" id="f-city" onchange="onCityChange()"></select>
+                    <select class="sel" id="f-dist" onchange="onDistChange()"></select>
+                  </div>
+                  <div class="hint">省 / 市 / 区三级级联，须选择完整（R-MD57）</div>
+                </div></div>
+              <div class="fitem span2"><div class="flabel"><span class="req">*</span>详细地址</div>
+                <div class="fctrl"><input class="txt" id="f-address" maxlength="200" placeholder="街道、门牌号等" oninput="markDirty()" onblur="onAddrBlur()">
+                <div class="hint">填写后根据地区与详细地址自动定位经纬度（R-MD65）</div></div></div>
+              <div class="fitem"><div class="flabel">邮编</div>
+                <div class="fctrl"><input class="txt mono" id="f-postal" maxlength="10" placeholder="6 位数字" oninput="markDirty()"></div></div>
+              <div class="fitem"><div class="flabel"><span class="req">*</span>是否启用</div>
+                <div class="fctrl">
+                  <label class="radio"><input type="radio" name="f-enabled" value="是" checked onchange="markDirty()">是</label>
+                  <label class="radio"><input type="radio" name="f-enabled" value="否" onchange="markDirty()">否</label>
+                  <div class="hint">停用后订单/运单新单据不可选择（R-MD60）</div></div></div>
+            </div>
+            </div>
+          </div>
+
+          <!-- 分区2 联系与作业 -->
+          <div class="sec">
+            <div class="sec-h" onclick="toggleSec(this)"><span class="arrow">▼</span>联系与作业<span class="cnt">选填</span></div>
+            <div class="sec-b">
+            <div class="fgrid">
+              <div class="fitem"><div class="flabel">联系人</div>
+                <div class="fctrl"><input class="txt" id="f-contact" maxlength="30" oninput="markDirty()"></div></div>
+              <div class="fitem"><div class="flabel">联系电话</div>
+                <div class="fctrl"><input class="txt" id="f-phone" maxlength="30" placeholder="手机或 区号-座机号" oninput="markDirty()">
+                <div class="hint">11 位手机号或"区号-座机号"（R-MD59）</div></div></div>
+              <div class="fitem"><div class="flabel">电子邮箱</div>
+                <div class="fctrl"><input class="txt" id="f-email" maxlength="60" placeholder="name@example.com" oninput="markDirty()"></div></div>
+              <div class="fitem"><div class="flabel">工作时段</div>
+                <div class="fctrl"><input class="txt" id="f-worktime" maxlength="50" placeholder="如 08:00-12:00,13:00-18:00" oninput="markDirty()"></div></div>
+              <div class="fitem"><div class="flabel">需要预约</div>
+                <div class="fctrl">
+                  <label class="radio"><input type="radio" name="f-reserve" value="是" onchange="markDirty()">是</label>
+                  <label class="radio"><input type="radio" name="f-reserve" value="否" checked onchange="markDirty()">否</label>
+                  <div class="hint">仅标识，供预约模块校验（R-MD64）</div></div></div>
+              <div class="fitem"><div class="flabel">是否创建回单</div>
+                <div class="fctrl">
+                  <label class="radio"><input type="radio" name="f-receipt" value="是" onchange="markDirty()">是</label>
+                  <label class="radio"><input type="radio" name="f-receipt" value="否" checked onchange="markDirty()">否</label>
+                  <div class="hint">仅标识，运单完结后按此生成回单任务（R-MD64）</div></div></div>
+            </div>
+            </div>
+          </div>
+
+          <!-- 分区3 电子围栏 -->
+          <div class="sec">
+            <div class="sec-h" onclick="toggleSec(this)"><span class="arrow">▼</span>电子围栏<span class="cnt" id="sec-fence-cnt">未启用</span></div>
+            <div class="sec-b">
+            <div class="fgrid">
+              <div class="fitem"><div class="flabel"><span class="req">*</span>是否启用电子围栏</div>
+                <div class="fctrl">
+                  <label class="radio"><input type="radio" name="f-fence" value="是" onchange="onFenceChange(true)">是</label>
+                  <label class="radio"><input type="radio" name="f-fence" value="否" checked onchange="onFenceChange(true)">否</label>
+                  <div class="hint">启用后按围栏距离与经纬度判定到货/离场（R-MD58）</div></div></div>
+              <div class="fitem"><div class="flabel">围栏距离</div>
+                <div class="fctrl"><input class="txt" id="f-fence-dist" type="number" min="1" value="500" placeholder="正整数，单位米" oninput="markDirty()">
+                <div class="hint">单位米，默认 500；启用围栏时必填（R-MD58）</div></div></div>
+              <div class="fitem"><div class="flabel">经度</div>
+                <div class="fctrl"><input class="txt mono" id="f-lng" placeholder="-180 ~ 180，最多 6 位小数" oninput="onGeoInput()">
+                <div class="hint">根据地址自动回写，可手工修正（R-MD65）</div></div></div>
+              <div class="fitem"><div class="flabel">纬度</div>
+                <div class="fctrl"><input class="txt mono" id="f-lat" placeholder="-90 ~ 90，最多 6 位小数" oninput="onGeoInput()">
+                <div class="hint">根据地址自动回写，可手工修正（R-MD65）</div></div></div>
+            </div>
+            </div>
+          </div>
+
+          <!-- 分区4 提货指引 -->
+          <div class="sec">
+            <div class="sec-h" onclick="toggleSec(this)"><span class="arrow">▼</span>提货指引<span class="cnt" id="sec-attach-cnt">0 个附件</span></div>
+            <div class="sec-b">
+            <div class="sub-tb-bar">
+              <button class="btn sm primary" onclick="$('#f-file').click()">＋ 上传附件</button>
+              <input type="file" id="f-file" class="hidden" multiple accept=".jpg,.jpeg,.png,.pdf,.doc,.docx" onchange="onFiles(this)">
+              <span class="hint">提货指引文档与入场地图；支持 jpg/png/pdf/doc/docx，单文件 ≤10MB，最多 5 个（R-MD63）</span>
+            </div>
+            <table>
+              <thead><tr><th style="width:44px">序号</th><th>文件名</th><th style="width:110px">大小</th><th style="width:170px">上传时间</th><th style="width:90px">操作</th></tr></thead>
+              <tbody id="attach-tbody"></tbody>
+            </table>
+            </div>
+          </div>
+
+          <!-- 分区5 授权租户 -->
+          <div class="sec">
+            <div class="sec-h" onclick="toggleSec(this)"><span class="arrow">▼</span>授权租户<span class="cnt" id="sec-tenant-cnt">0 个</span></div>
+            <div class="sec-b">
+            <div class="sub-tb-bar">
+              <button class="btn sm primary" onclick="tenantAdd()">＋ 新增行</button>
+              <button class="btn sm" onclick="tenantDel()">删除行</button>
+              <button class="btn sm" onclick="linkTenants()">关 联</button>
+              <span class="hint">一个地址可授权多个租户，同一租户不可重复（R-MD62）</span>
+            </div>
+            <table>
+              <thead><tr>
+                <th class="c-check"><input type="checkbox" onchange="toggleAll(this,'#tenant-tbody')"></th>
+                <th style="width:44px">序号</th><th style="width:240px">租户ID *</th><th>租户名称</th>
+                <th style="width:100px">租户状态</th><th style="width:170px">关联时间</th>
+              </tr></thead>
+              <tbody id="tenant-tbody"></tbody>
+            </table>
+            </div>
+          </div>
+
+          </div><!-- /modal-b -->
+          <div class="modal-f">
+            <button class="btn" onclick="cancelForm()">取 消</button>
+            <button class="btn primary" onclick="saveForm()">保 存</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════════ P3 地址详情 ═══════════ -->
+      <section id="screen-p3" class="hidden">
+        <div class="card">
+          <div class="card-h">
+            <span id="p3-title">地址详情</span>
+            <span id="p3-tags"></span>
+            <span style="flex:1"></span>
+            <button class="btn primary sm" onclick="p3Edit()">编 辑</button>
+            <button class="btn sm" onclick="switchScreen('p1')">返 回</button>
+          </div>
+          <div class="card-b">
+            <div class="dcard">
+              <div class="dcard-t">基本信息</div>
+              <div class="dcard-b"><div class="detail-grid" id="p3-base"></div></div>
+            </div>
+            <div class="dcard">
+              <div class="dcard-t">联系与作业</div>
+              <div class="dcard-b"><div class="detail-grid" id="p3-contact"></div></div>
+            </div>
+            <div class="dcard">
+              <div class="dcard-t">电子围栏</div>
+              <div class="dcard-b"><div class="detail-grid" id="p3-fence"></div></div>
+            </div>
+            <div class="dcard">
+              <div class="dcard-t">提货指引</div>
+              <div class="dcard-b" style="padding:0"><table id="p3-attach"></table></div>
+            </div>
+            <div class="dcard">
+              <div class="dcard-t">授权租户</div>
+              <div class="dcard-b" style="padding:0"><table id="p3-tenant"></table></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════════ P9 按钮—弹窗关系总览 ═══════════ -->
+      <section id="screen-p9" class="hidden">
+        <div class="card">
+          <div class="card-h">P9 按钮—弹窗/页面跳转关系总览
+            <span class="muted" style="font-weight:400;font-size:11px">对应 3.1.1 按钮—弹窗/页面映射表</span></div>
+          <div class="card-b p9-wrap">
+            <svg class="p9-svg" viewBox="0 0 1120 660" xmlns="http://www.w3.org/2000/svg" font-family="Microsoft YaHei, sans-serif">
+              <defs>
+                <marker id="ah" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+                  <path d="M0,0 L9,4.5 L0,9 z" fill="#009100"/>
+                </marker>
+              </defs>
+
+              <!-- P1 主界面 -->
+              <rect x="30" y="70" width="330" height="400" rx="10" fill="#ffffff" stroke="#E6E6E5"/>
+              <text x="50" y="102" font-size="15" font-weight="800" fill="#0A0E0A">P1 地址列表（主界面）</text>
+              <text x="50" y="122" font-size="11" fill="#9D9F9D">查询条件区 + 工具栏 + 列表（含行内操作列）+ 分页</text>
+              <line x1="30" y1="136" x2="360" y2="136" stroke="#F8F7F7"/>
+
+              <text x="50" y="156" font-size="11" fill="#9D9F9D">工具栏</text>
+              <g font-size="12" text-anchor="middle">
+                <rect x="50" y="164" width="118" height="26" rx="5" fill="#E9FAEB" stroke="#B7E0B9"/><text x="109" y="181" fill="#007400" font-weight="700">新增 B01</text>
+                <rect x="50" y="194" width="118" height="26" rx="5" fill="#E9FAEB" stroke="#B7E0B9"/><text x="109" y="211" fill="#007400" font-weight="700">删除 B03</text>
+                <rect x="50" y="224" width="118" height="26" rx="5" fill="#F8F8F8" stroke="#E6E6E5"/><text x="109" y="241" fill="#9D9F9D" font-weight="700">启用 B07</text>
+                <rect x="50" y="254" width="118" height="26" rx="5" fill="#E9FAEB" stroke="#B7E0B9"/><text x="109" y="271" fill="#007400" font-weight="700">停用 B08</text>
+                <rect x="50" y="284" width="118" height="26" rx="5" fill="#E9FAEB" stroke="#B7E0B9"/><text x="109" y="301" fill="#007400" font-weight="700">导入 B05</text>
+                <rect x="50" y="314" width="118" height="26" rx="5" fill="#E9FAEB" stroke="#B7E0B9"/><text x="109" y="331" fill="#007400" font-weight="700">导出 B06</text>
+              </g>
+              <text x="180" y="241" font-size="11.5" fill="#9D9F9D">直接执行，无弹窗（B07）</text>
+
+              <text x="50" y="366" font-size="11" fill="#9D9F9D">列表行内操作列（每行）</text>
+              <g text-anchor="middle">
+                <rect x="50" y="374" width="118" height="26" rx="5" fill="#E9EEF9" stroke="#B7D7F0"/><text x="109" y="391" font-size="12" fill="#2261DD" font-weight="700">详情 B04</text>
+                <rect x="180" y="374" width="118" height="26" rx="5" fill="#E9EEF9" stroke="#B7D7F0"/><text x="239" y="391" font-size="12" fill="#2261DD" font-weight="700">编辑 B02</text>
+                <rect x="50" y="404" width="118" height="26" rx="5" fill="#E9FAEB" stroke="#B7E0B9"/><text x="109" y="421" font-size="12" fill="#007400" font-weight="700">删除 B03</text>
+                <rect x="180" y="404" width="118" height="26" rx="5" fill="#E9FAEB" stroke="#B7E0B9"/><text x="239" y="421" font-size="11" fill="#007400" font-weight="700">停用/启用 B07·B08</text>
+              </g>
+
+              <!-- P2 / P3 -->
+              <rect x="720" y="36" width="370" height="78" rx="10" fill="#FAF6EA" stroke="#E0C98F"/>
+              <text x="740" y="64" font-size="14" font-weight="800" fill="#0A0E0A">P2 新增/编辑地址（弹窗表单）</text>
+              <text x="740" y="88" font-size="11" fill="#3B3E3B">纵向折叠区：基本信息 / 联系与作业 / 电子围栏 / 提货指引 / 授权租户</text>
+              <text x="1070" y="64" font-size="11" fill="#9D9F9D" text-anchor="end">← 新增 B01 / 行内编辑 B02</text>
+
+              <rect x="720" y="132" width="370" height="62" rx="10" fill="#E9FAEB" stroke="#009100"/>
+              <text x="740" y="157" font-size="14" font-weight="800" fill="#007400">P3 地址详情（只读页）</text>
+              <text x="740" y="178" font-size="11" fill="#3B3E3B">分组卡片 + 附件列表 + 授权租户</text>
+
+              <!-- D1~D4 -->
+              <g font-size="13">
+                <rect x="720" y="212" width="370" height="48" rx="8" fill="#FAF6EA" stroke="#E0C98F"/>
+                <text x="740" y="241" font-weight="800" fill="#0A0E0A">D1 删除确认框</text>
+                <rect x="720" y="272" width="370" height="48" rx="8" fill="#FAF6EA" stroke="#E0C98F"/>
+                <text x="740" y="301" font-weight="800" fill="#0A0E0A">D2 停用确认框</text>
+                <rect x="720" y="332" width="370" height="48" rx="8" fill="#FAF6EA" stroke="#E0C98F"/>
+                <text x="740" y="361" font-weight="800" fill="#0A0E0A">D3 导入弹窗</text>
+                <rect x="720" y="392" width="370" height="48" rx="8" fill="#FAF6EA" stroke="#E0C98F"/>
+                <text x="740" y="421" font-weight="800" fill="#0A0E0A">D4 导出弹窗</text>
+              </g>
+              <g font-size="11" fill="#9D9F9D" text-anchor="end">
+                <text x="1070" y="241">← 删除 B03（工具栏/行内）</text>
+                <text x="1070" y="301">← 停用 B08（工具栏/行内）</text>
+                <text x="1070" y="361">← 导入 B05</text>
+                <text x="1070" y="421">← 导出 B06</text>
+              </g>
+
+              <g fill="none" stroke="#009100" stroke-width="1.6" stroke-dasharray="6 4" marker-end="url(#ah)">
+                <path d="M168 177 C 430 177, 470 70, 714 70"/>
+                <path d="M168 207 C 430 207, 470 236, 714 236"/>
+                <path d="M168 267 C 430 267, 470 296, 714 296"/>
+                <path d="M168 297 C 430 297, 470 356, 714 356"/>
+                <path d="M168 327 C 430 327, 470 416, 714 416"/>
+                <path d="M168 387 C 430 387, 470 163, 714 163"/>
+                <path d="M298 387 C 450 387, 470 88, 714 88"/>
+                <path d="M168 417 C 430 417, 470 240, 714 240"/>
+                <path d="M298 417 C 450 417, 470 300, 714 300"/>
+              </g>
+
+              <!-- 底部说明 -->
+              <rect x="30" y="490" width="1060" height="150" rx="8" fill="#F8F8F8" stroke="#E6E6E5"/>
+              <line x1="50" y1="515" x2="88" y2="515" stroke="#009100" stroke-width="1.6" stroke-dasharray="6 4"/>
+              <text x="96" y="519" font-size="11.5" fill="#3B3E3B">虚线箭头 = 单击按钮后打开目标弹窗/页面（本原型中均可实际点击体验）</text>
+              <text x="50" y="542" font-size="11.5" fill="#3B3E3B">直接执行、无弹窗：P1【启用 B07】；P2【保存 B09 / 取消 B10 / 新增行·删除行 B11·B12 / 关联 B13 / 上传附件 B14 / 删除附件 B15】</text>
+              <text x="50" y="561" font-size="11.5" fill="#3B3E3B">P3【编辑 B16 / 返回 B17】；弹窗内【确认 B18/B19】【下载模板 B20】【上传附件 B21】【导出 B22】；P3 附件名可点击下载</text>
+              <text x="50" y="580" font-size="11.5" fill="#3B3E3B">P1 列表每行提供行内操作【详情 / 编辑 / 删除 / 停用·启用】（图中蓝色）；编辑 B02 与详情 B04 仅行内提供、工具栏不设</text>
+              <text x="50" y="599" font-size="11.5" fill="#3B3E3B">电子围栏启用时围栏距离/经纬度必填（R-MD58）；地区为省/市/区级联必填（R-MD57）；附件最多 5 个、单文件 ≤10MB（R-MD63）</text>
+              <text x="50" y="618" font-size="11.5" fill="#3B3E3B">需要预约、是否创建回单为标识字段，下游模块读取（R-MD64）；授权租户支持多个、同一租户不可重复（R-MD62）</text>
+            </svg>
+          </div>
+        </div>
+        <div class="note-strip">
+          <b>体验路径：</b>P1 每行提供行内操作【详情 / 编辑 / 删除 / 停用·启用】，直接对该行执行；工具栏提供新增、删除、启用、停用、导入、导出，删除/启用/停用为批量操作需先勾选。【新增/编辑】弹出 P2（基本信息 / 联系与作业 / 电子围栏 / 提货指引 / 授权租户 五分区，点击标题栏可折叠），保存校验：地址编码唯一（R-MD57）、地区三级必选（R-MD57）、围栏启用时距离/经纬度必填（R-MD58）、邮编/电话/邮箱格式（R-MD59）、附件类型/大小/数量（R-MD63）、租户不可重复（R-MD62）。规则演示数据：AD-80001/AD-80003/AD-80006 已被业务单据引用（删除触发 R-MD61）；AD-80003 启用围栏但经纬度留空可体验 R-MD58 拦截；AD-80001 已授权 1 个租户，可体验重复授权校验。
+        </div>
+      </section>
+
+    </div>
+  </main>
+</div>
+
+<!-- ═══════════ D1 删除确认框 ═══════════ -->
+<div class="mask hidden" id="dlg-d1">
+  <div class="modal">
+    <div class="modal-h">删除确认 <span class="dlg-tag">D1 · B18</span>
+      <button class="modal-x" onclick="closeModal('dlg-d1')">✕</button></div>
+    <div class="modal-b"><div class="modal-warn">
+      <div class="warn-ic red">!</div>
+      <div>确认删除选中的 <b id="d1-count">0</b> 条地址记录？<br>
+        <span style="color:var(--muted);font-size:11.5px">地址未被任何业务单据（订单/发货订单/客户地址/运单）引用时方可删除，否则仅可停用（R-MD61）；删除为逻辑删除，保留档案供历史单据追溯。</span>
+        <div id="d1-ids" class="mono" style="margin-top:6px;color:var(--muted)"></div>
+      </div></div></div>
+    <div class="modal-f">
+      <button class="btn" onclick="closeModal('dlg-d1')">取消</button>
+      <button class="btn danger" onclick="doDelete()">确 认</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ D2 停用确认框 ═══════════ -->
+<div class="mask hidden" id="dlg-d2">
+  <div class="modal">
+    <div class="modal-h">停用确认 <span class="dlg-tag">D2 · B19</span>
+      <button class="modal-x" onclick="closeModal('dlg-d2')">✕</button></div>
+    <div class="modal-b"><div class="modal-warn">
+      <div class="warn-ic">!</div>
+      <div>确认停用选中的 <b id="d2-count">0</b> 条地址记录？<br>
+        <span style="color:var(--muted);font-size:11.5px">停用后订单、客户地址、运单等新单据不可选择该地址，历史单据不受影响（R-MD60）。</span>
+        <div id="d2-ids" class="mono" style="margin-top:6px;color:var(--muted)"></div>
+      </div></div></div>
+    <div class="modal-f">
+      <button class="btn" onclick="closeModal('dlg-d2')">取消</button>
+      <button class="btn primary" onclick="doDisable()">确 认</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ D3 导入弹窗 ═══════════ -->
+<div class="mask hidden" id="dlg-d3">
+  <div class="modal">
+    <div class="modal-h">导入地址 <span class="dlg-tag">D3 · B20/B21</span>
+      <button class="modal-x" onclick="closeModal('dlg-d3')">✕</button></div>
+    <div class="modal-b">
+      <div class="fitem"><div class="flabel" style="width:80px">导入模式</div>
+        <div class="fctrl">
+          <label class="radio"><input type="radio" name="d3-mode" value="新增" checked>新增</label>
+          <label class="radio"><input type="radio" name="d3-mode" value="更新">更新</label>
+          <div class="hint" style="line-height:32px">新增模式要求地址编码唯一；更新模式按地址编码匹配覆盖</div></div></div>
+      <div class="fitem" style="margin-top:12px"><div class="flabel" style="width:80px">模板文件</div>
+        <div class="fctrl"><button class="btn sm" onclick="toast('地址导入模板下载中…','info')">⬇ 下载模板</button></div></div>
+      <div class="fitem" style="margin-top:12px"><div class="flabel" style="width:80px">选择文件</div>
+        <div class="fctrl"><input type="file" id="d3-file" class="txt" style="padding:5px 8px" accept=".xlsx,.xls"></div></div>
+      <div id="d3-result" class="result-box hidden">
+        导入完成：成功 <b style="color:var(--brand)">8</b> 行，失败 <b style="color:var(--red)">2</b> 行。
+        <a href="javascript:;" onclick="toast('错误明细文件下载中…','info')">下载错误明细</a>
+        <div class="hint">地址编码/名称/国家/地区/详细地址必输；编码唯一（R-MD57）；围栏字段按启用状态校验（R-MD58）；校验失败行不入库</div>
+      </div>
+    </div>
+    <div class="modal-f">
+      <button class="btn" onclick="closeModal('dlg-d3')">取消</button>
+      <button class="btn primary" onclick="doImport()">上传附件</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ D4 导出弹窗 ═══════════ -->
+<div class="mask hidden" id="dlg-d4">
+  <div class="modal">
+    <div class="modal-h">导出地址 <span class="dlg-tag">D4 · B22</span>
+      <button class="modal-x" onclick="closeModal('dlg-d4')">✕</button></div>
+    <div class="modal-b">
+      <div class="fitem"><div class="flabel" style="width:80px">导出范围</div>
+        <div class="fctrl">
+          <label class="radio"><input type="radio" name="d4-scope" value="sel" checked>当前勾选的 <b id="d4-cnt">0</b> 条记录</label><br>
+          <label class="radio"><input type="radio" name="d4-scope" value="query">按当前查询条件（共 <b id="d4-qcnt">0</b> 条）</label><br>
+          <label class="radio"><input type="radio" name="d4-scope" value="all">全部地址</label>
+        </div></div>
+    </div>
+    <div class="modal-f">
+      <button class="btn" onclick="closeModal('dlg-d4')">取消</button>
+      <button class="btn primary" onclick="doExport()">导 出</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ 离开确认（B10） ═══════════ -->
+<div class="mask hidden" id="dlg-leave">
+  <div class="modal" style="width:420px">
+    <div class="modal-h">离开确认 <span class="dlg-tag">B10</span>
+      <button class="modal-x" onclick="closeModal('dlg-leave')">✕</button></div>
+    <div class="modal-b"><div class="modal-warn">
+      <div class="warn-ic">!</div><div id="leave-msg">存在未保存的修改，确定离开？</div></div></div>
+    <div class="modal-f">
+      <button class="btn primary" onclick="closeModal('dlg-leave')">继续编辑</button>
+      <button class="btn" onclick="leaveConfirm()">确定离开</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+/* ================= 工具 ================= */
+const $ = s => document.querySelector(s);
+const $$ = s => Array.from(document.querySelectorAll(s));
+function esc(s){ return String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+function now(){ const d=new Date(), p=n=>String(n).padStart(2,'0');
+  return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`; }
+function toast(msg, type){ type = type || 'info';
+  const d = document.createElement('div'); d.className = 'toast-item toast-' + type; d.textContent = msg;
+  $('#toast').appendChild(d);
+  setTimeout(()=>{ d.style.transition='opacity .3s'; d.style.opacity='0'; setTimeout(()=>d.remove(), 300); }, 2800); }
+function openModal(id){ $('#'+id).classList.remove('hidden'); }
+function closeModal(id){ $('#'+id).classList.add('hidden'); }
+function getRadio(name){ const r = document.querySelector(`input[name="${name}"]:checked`); return r ? r.value : null; }
+function setRadio(name, v){ $$(`input[name="${name}"]`).forEach(r => r.checked = r.value === v); }
+function toggleAll(src, tbodySel){ $$(tbodySel + ' .row-check').forEach(c => c.checked = src.checked); }
+function fmtSize(bytes){
+  if (bytes >= 1024 * 1024) return (bytes / 1024 / 1024).toFixed(1) + ' MB';
+  return Math.max(1, Math.round(bytes / 1024)) + ' KB';
+}
+
+/* ================= 地区字典（省/市/区） ================= */
+const REGIONS = {
+  '上海市': { '市辖区': ['黄浦区','徐汇区','长宁区','静安区','浦东新区','青浦区','嘉定区','松江区'] },
+  '江苏省': { '苏州市': ['工业园区','相城区','吴中区'], '南京市': ['玄武区','江宁区'] },
+  '浙江省': { '宁波市': ['北仑区','鄞州区'], '杭州市': ['滨江区','余杭区'] },
+  '广东省': { '广州市': ['黄埔区','南沙区'], '深圳市': ['南山区','宝安区'] },
+  '四川省': { '成都市': ['双流区','高新区'] },
+  '湖北省': { '武汉市': ['东西湖区','经济技术开发区'] },
+  '安徽省': { '合肥市': ['高新区','蜀山区'] }
+};
+
+/* ================= 地理编码模拟数据（R-MD65 地址自动定位） ================= */
+const GEO_DISTRICTS = {
+  '上海市/市辖区/黄浦区': [121.4840, 31.2316],
+  '上海市/市辖区/徐汇区': [121.4365, 31.1881],
+  '上海市/市辖区/长宁区': [121.4240, 31.2204],
+  '上海市/市辖区/静安区': [121.4483, 31.2290],
+  '上海市/市辖区/浦东新区': [121.5440, 31.2215],
+  '上海市/市辖区/青浦区': [121.1240, 31.1506],
+  '上海市/市辖区/嘉定区': [121.2654, 31.3754],
+  '上海市/市辖区/松江区': [121.2277, 31.0322],
+  '江苏省/苏州市/工业园区': [120.7355, 31.3172],
+  '江苏省/苏州市/相城区': [120.6420, 31.3690],
+  '江苏省/苏州市/吴中区': [120.6320, 31.2640],
+  '江苏省/南京市/玄武区': [118.7970, 32.0487],
+  '江苏省/南京市/江宁区': [118.8399, 31.9531],
+  '浙江省/宁波市/北仑区': [121.8442, 29.9001],
+  '浙江省/宁波市/鄞州区': [121.5470, 29.8160],
+  '浙江省/杭州市/滨江区': [120.2119, 30.2084],
+  '浙江省/杭州市/余杭区': [120.0310, 30.4185],
+  '广东省/广州市/黄埔区': [113.4590, 23.1065],
+  '广东省/广州市/南沙区': [113.5370, 22.7940],
+  '广东省/深圳市/南山区': [113.9300, 22.5330],
+  '广东省/深圳市/宝安区': [113.8830, 22.5550],
+  '四川省/成都市/双流区': [103.9237, 30.5745],
+  '四川省/成都市/高新区': [104.0660, 30.5740],
+  '湖北省/武汉市/东西湖区': [114.1429, 30.6228],
+  '湖北省/武汉市/经济技术开发区': [114.1660, 30.4890],
+  '安徽省/合肥市/高新区': [117.1448, 31.8388],
+  '安徽省/合肥市/蜀山区': [117.2600, 31.8510]
+};
+/* 详细地址关键词优先匹配（模拟门牌级定位） */
+const GEO_KEYWORDS = [
+  ['华志路1588号', 121.2278, 31.2045],
+  ['星湖街218号', 120.7355, 31.3172],
+  ['永河路55号', 121.8442, 29.9001],
+  ['开发大道42号', 113.5076, 23.1062],
+  ['西航港大道中四段219号', 103.9356, 30.5773],
+  ['金山大道特1号', 114.1429, 30.6228],
+  ['望江西路5089号', 117.1448, 31.8388],
+  ['科苑路15号', 113.9426, 22.5408]
+];
+
+/* ================= 模拟数据：协同租户 ================= */
+const TENANTS = {
+  'T-20001': { name:'华顺协同物流（上海）有限公司', status:'启用' },
+  'T-20002': { name:'启润（香港）贸易有限公司', status:'启用' },
+  'T-20003': { name:'鹏城国际货运（深圳）有限公司', status:'停用' },
+  'T-20004': { name:'蓉城供应链协同平台', status:'启用' }
+};
+
+/* ================= 模拟数据：地址 ================= */
+let addresses = [
+  { id:'AD-80001', name:'上海青浦工厂', country:'中国',
+    province:'上海市', city:'市辖区', district:'青浦区', address:'华新镇华志路1588号', alloc:'华东',
+    postal:'201708', contact:'王建国', phone:'021-59781234', email:'wangjg@example.com',
+    workTime:'08:00-17:30', reserve:true, receipt:true,
+    fence:true, fenceDist:500, lng:'121.227800', lat:'31.204500',
+    enabled:true, referenced:true, updateTime:'2026-11-18 14:22:31',
+    attachments:[ { name:'提货指引-青浦工厂.pdf', size: 1835000, time:'2026-03-12 10:20:00' },
+                  { name:'入场地图-青浦工厂.png', size: 620000, time:'2026-03-12 10:21:00' } ],
+    tenants:[ { id:'T-20001', linkedAt:'2026-03-12 10:22:00' } ] },
+  { id:'AD-80002', name:'苏州园区收货点', country:'中国',
+    province:'江苏省', city:'苏州市', district:'工业园区', address:'星湖街218号生物纳米园B2栋', alloc:'华东',
+    postal:'215123', contact:'李敏', phone:'13915556677', email:'limin@example.com',
+    workTime:'09:00-18:00', reserve:false, receipt:false,
+    fence:false, fenceDist:'', lng:'', lat:'',
+    enabled:true, referenced:false, updateTime:'2026-11-16 09:05:12',
+    attachments:[], tenants:[] },
+  { id:'AD-80003', name:'宁波北仑港仓', country:'中国',
+    province:'浙江省', city:'宁波市', district:'北仑区', address:'永河路55号港区仓库3号库', alloc:'华东',
+    postal:'315800', contact:'陈海', phone:'0574-88123456', email:'',
+    workTime:'07:00-22:00', reserve:true, receipt:false,
+    fence:true, fenceDist:800, lng:'', lat:'',
+    enabled:true, referenced:true, updateTime:'2026-11-10 16:44:03',
+    attachments:[ { name:'提货指引-北仑港仓.docx', size: 242000, time:'2026-04-02 09:00:00' } ],
+    tenants:[ { id:'T-20004', linkedAt:'2026-04-02 09:05:00' } ] },
+  { id:'AD-80004', name:'广州黄埔配送中心', country:'中国',
+    province:'广东省', city:'广州市', district:'黄埔区', address:'开发大道42号物流园A库', alloc:'华南',
+    postal:'510700', contact:'周志强', phone:'13800138044', email:'zhouzq@example.com',
+    workTime:'08:00-20:00', reserve:false, receipt:true,
+    fence:true, fenceDist:300, lng:'113.507600', lat:'23.106200',
+    enabled:true, referenced:false, updateTime:'2026-11-19 11:30:45',
+    attachments:[ { name:'入场地图-黄埔.png', size: 810000, time:'2026-06-11 14:00:00' } ], tenants:[] },
+  { id:'AD-80005', name:'成都双流转运点', country:'中国',
+    province:'四川省', city:'成都市', district:'双流区', address:'西航港大道中四段219号', alloc:'西南',
+    postal:'610200', contact:'', phone:'', email:'',
+    workTime:'', reserve:false, receipt:false,
+    fence:false, fenceDist:'', lng:'', lat:'',
+    enabled:false, referenced:false, updateTime:'2026-11-12 10:18:26',
+    attachments:[], tenants:[] },
+  { id:'AD-80006', name:'武汉东西湖仓', country:'中国',
+    province:'湖北省', city:'武汉市', district:'东西湖区', address:'金山大道特1号保税物流中心', alloc:'华中',
+    postal:'430040', contact:'赵雪', phone:'027-83336655', email:'zhaoxue@example.com',
+    workTime:'08:30-18:00', reserve:false, receipt:true,
+    fence:true, fenceDist:600, lng:'114.142900', lat:'30.622800',
+    enabled:true, referenced:true, updateTime:'2026-11-17 15:02:57',
+    attachments:[], tenants:[ { id:'T-20001', linkedAt:'2026-07-30 14:05:52' } ] },
+  { id:'AD-80007', name:'合肥高新收货点', country:'中国',
+    province:'安徽省', city:'合肥市', district:'高新区', address:'望江西路5089号创新产业园', alloc:'华东',
+    postal:'230088', contact:'孙涛', phone:'0551-65568890', email:'',
+    workTime:'09:00-17:00', reserve:true, receipt:false,
+    fence:false, fenceDist:'', lng:'', lat:'',
+    enabled:true, referenced:false, updateTime:'2026-11-20 09:55:33',
+    attachments:[], tenants:[] },
+  { id:'AD-80008', name:'深圳南山客户点', country:'中国',
+    province:'广东省', city:'深圳市', district:'南山区', address:'科技园科苑路15号科兴科学园', alloc:'华南',
+    postal:'518057', contact:'吴静', phone:'13700137788', email:'wujing@example.com',
+    workTime:'09:00-18:00', reserve:false, receipt:false,
+    fence:true, fenceDist:200, lng:'113.942600', lat:'22.540800',
+    enabled:false, referenced:false, updateTime:'2026-11-05 13:40:19',
+    attachments:[], tenants:[] }
+];
+
+/* ================= 创建时间（模拟：按更新时间回溯） ================= */
+const CREATED_BACK_DAYS = [186, 145, 210, 122, 168, 99, 240, 74];
+addresses.forEach((c, i) => {
+  const d = new Date(c.updateTime.replace(/-/g, '/'));
+  d.setDate(d.getDate() - CREATED_BACK_DAYS[i]);
+  const p = n => String(n).padStart(2, '0');
+  c.createdAt = `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} 09:00:00`;
+});
+const regionText = c => [c.province, c.city, c.district].filter(Boolean).join('/');
+
+/* ================= 状态 ================= */
+let sel = new Set();
+let pending = [];
+let editingId = null;
+let draft = null;
+let formDirty = false;
+let currentDetailId = null;
+let geoManual = false;   // 用户是否手工修改过经纬度（R-MD65：手工值不被自动定位覆盖）
+
+/* ================= 界面切换 ================= */
+function switchScreen(k){
+  $$('section[id^="screen-"]').forEach(x => x.classList.add('hidden'));
+  $('#screen-' + k).classList.remove('hidden');
+  $$('.ptab').forEach(t => t.classList.toggle('active', t.dataset.k === k));
+}
+function toggleSec(h){ h.parentElement.classList.toggle('closed'); }
+function ensureSec(i){
+  const s = $$('#dlg-p2 .sec')[i];
+  if (!s) return;
+  s.classList.remove('closed');
+  s.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+/* ================= P1 列表 ================= */
+function getFiltered(){
+  const q = { code: $('#q-code').value.trim().toLowerCase(), name: $('#q-name').value.trim(),
+              region: $('#q-region').value.trim(), alloc: $('#q-alloc').value,
+              enabled: $('#q-enabled').value, d1: $('#q-date1').value, d2: $('#q-date2').value };
+  return addresses.filter(c => {
+    const rt = regionText(c);
+    return (!q.code || c.id.toLowerCase().includes(q.code)) &&
+      (!q.name || c.name.includes(q.name)) &&
+      (!q.region || rt.includes(q.region)) &&
+      (q.alloc === '全部' || c.alloc === q.alloc) &&
+      (q.enabled === '全部' || (q.enabled === '是') === c.enabled) &&
+      (!q.d1 || c.createdAt.slice(0, 10) >= q.d1) &&
+      (!q.d2 || c.createdAt.slice(0, 10) <= q.d2);
+  });
+}
+function renderList(){
+  if ($('#q-date1').value && $('#q-date2').value && $('#q-date1').value > $('#q-date2').value)
+    toast('创建时间止日期需不早于起日期', 'error');
+  const list = getFiltered();
+  $('#p1-count').textContent = list.length;
+  $('#p1-selcount').textContent = sel.size;
+  $('#p1-tbody').innerHTML = list.map(c => `
+    <tr data-id="${esc(c.id)}" class="${sel.has(c.id) ? 'selected' : ''}">
+      <td class="c-check"><input type="checkbox" ${sel.has(c.id) ? 'checked' : ''}></td>
+      <td class="mono">${esc(c.id)}</td>
+      <td>${esc(c.name)}</td>
+      <td>${esc(c.country)}</td>
+      <td>${esc(regionText(c))}</td>
+      <td title="${esc(c.address)}">${esc(c.address.length > 18 ? c.address.slice(0, 18) + '…' : c.address)}</td>
+      <td>${c.alloc ? esc(c.alloc) : '<span class="muted">—</span>'}</td>
+      <td>${c.fence ? '<span class="status green">是</span>' : '<span class="status gray">否</span>'}</td>
+      <td>${c.enabled ? '<span class="status green">是</span>' : '<span class="status gray">否</span>'}</td>
+      <td class="muted mono">${esc(c.updateTime)}</td>
+      <td class="c-act">
+        <button class="act" onclick="event.stopPropagation();rowAct('view','${esc(c.id)}')">详情</button><span class="act-sep">|</span><button class="act" onclick="event.stopPropagation();rowAct('edit','${esc(c.id)}')">编辑</button><span class="act-sep">|</span><button class="act danger" onclick="event.stopPropagation();rowAct('delete','${esc(c.id)}')">删除</button><span class="act-sep">|</span>${c.enabled
+          ? `<button class="act" onclick="event.stopPropagation();rowAct('disable','${esc(c.id)}')">停用</button>`
+          : `<button class="act" onclick="event.stopPropagation();rowAct('enable','${esc(c.id)}')">启用</button>`}
+      </td>
+    </tr>`).join('') || `<tr><td colspan="11" class="empty">未查询到符合条件的地址记录</td></tr>`;
+  $$('#p1-tbody tr[data-id]').forEach(tr =>
+    tr.addEventListener('click', () => { const id = tr.dataset.id;
+      sel.has(id) ? sel.delete(id) : sel.add(id); renderList(); }));
+  $('#ck-all').checked = list.length > 0 && list.every(c => sel.has(c.id));
+}
+function resetQuery(){
+  ['q-code','q-name','q-region','q-date1','q-date2'].forEach(id => $('#'+id).value = '');
+  $('#q-alloc').value = '全部'; $('#q-enabled').value = '全部'; renderList();
+}
+$('#ck-all').addEventListener('change', function(){
+  const list = getFiltered();
+  if (this.checked) list.forEach(c => sel.add(c.id)); else list.forEach(c => sel.delete(c.id));
+  renderList();
+});
+
+/* ================= P1 工具栏 ================= */
+function tb(action){
+  const arr = [...sel].map(id => addresses.find(c => c.id === id)).filter(Boolean);
+  if (action === 'add') { openForm('new'); return; }
+  if (action === 'import') { openModal('dlg-d3'); return; }
+  if (action === 'export') {
+    $('#d4-cnt').textContent = sel.size; $('#d4-qcnt').textContent = getFiltered().length;
+    openModal('dlg-d4'); return;
+  }
+  if (!arr.length) { toast('请先勾选地址记录', 'error'); return; }
+  const ids = arr.map(c => c.id).join('、');
+  switch (action) {
+    case 'delete':
+      pending = arr.map(c => c.id);
+      $('#d1-count').textContent = arr.length; $('#d1-ids').textContent = ids; openModal('dlg-d1'); break;
+    case 'disable': {
+      const ok = arr.filter(c => c.enabled);
+      if (!ok.length) { toast('请勾选"是否启用=是"的地址记录', 'error'); return; }
+      pending = ok.map(c => c.id);
+      $('#d2-count').textContent = ok.length; $('#d2-ids').textContent = ok.map(c => c.id).join('、');
+      openModal('dlg-d2'); break; }
+    case 'enable': {
+      const ok = arr.filter(c => !c.enabled);
+      if (!ok.length) { toast('请勾选"是否启用=否"的地址记录', 'error'); return; }
+      ok.forEach(c => c.enabled = true); renderList();
+      toast(`已启用 ${ok.length} 条地址记录`, 'success'); break; }
+  }
+}
+function rowAct(action, id){
+  const c = addresses.find(x => x.id === id); if (!c) return;
+  switch (action) {
+    case 'view': openDetail(id); break;
+    case 'edit': openForm('edit', id); break;
+    case 'delete':
+      pending = [id];
+      $('#d1-count').textContent = 1; $('#d1-ids').textContent = id; openModal('dlg-d1'); break;
+    case 'disable':
+      pending = [id];
+      $('#d2-count').textContent = 1; $('#d2-ids').textContent = id; openModal('dlg-d2'); break;
+    case 'enable':
+      c.enabled = true; renderList();
+      toast(`已启用地址 ${id}`, 'success'); break;
+  }
+}
+
+/* ================= 弹窗动作 ================= */
+function doDelete(){
+  const arr = pending.map(id => addresses.find(c => c.id === id)).filter(Boolean);
+  const bad = arr.filter(c => c.referenced);
+  closeModal('dlg-d1'); pending = [];
+  if (bad.length) { toast(`地址 ${bad.map(c => c.id).join('、')} 已被业务数据引用，不可删除，请使用停用（R-MD61）`, 'error'); return; }
+  addresses = addresses.filter(c => !arr.some(x => x.id === c.id));
+  arr.forEach(c => sel.delete(c.id));
+  renderList();
+  toast(`已删除 ${arr.length} 条地址记录（逻辑删除，保留档案供历史单据追溯）`, 'success');
+}
+function doDisable(){
+  const arr = pending.map(id => addresses.find(c => c.id === id)).filter(Boolean);
+  arr.forEach(c => c.enabled = false);
+  closeModal('dlg-d2'); pending = []; renderList();
+  toast(`已停用 ${arr.length} 条地址记录`, 'success');
+}
+function doImport(){
+  if (!$('#d3-file').value) { toast('请先选择要导入的文件', 'error'); return; }
+  const mode = getRadio('d3-mode');
+  $('#d3-result').classList.remove('hidden');
+  toast(`导入完成（${mode}模式）：成功 8 行，失败 2 行`, 'warn');
+}
+function doExport(){
+  const scope = getRadio('d4-scope');
+  const label = scope === 'sel' ? '当前勾选记录' : scope === 'query' ? '当前查询条件' : '全部地址';
+  closeModal('dlg-d4');
+  toast(`已按【${label}】范围生成 Excel 文件并开始下载`, 'success');
+}
+
+/* ================= P2 表单：地区级联 ================= */
+function renderProv(){
+  const el = $('#f-prov');
+  el.innerHTML = '<option value="">请选择省</option>' +
+    Object.keys(REGIONS).map(p => `<option value="${esc(p)}">${esc(p)}</option>`).join('');
+  el.value = draft.province || '';
+  renderCity();
+}
+function renderCity(){
+  const el = $('#f-city');
+  const cities = draft.province ? Object.keys(REGIONS[draft.province]) : [];
+  el.innerHTML = '<option value="">请选择市</option>' +
+    cities.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
+  el.value = draft.city || '';
+  el.disabled = !draft.province;
+  renderDist();
+}
+function renderDist(){
+  const el = $('#f-dist');
+  const cities = draft.province ? REGIONS[draft.province] : null;
+  const dists = (cities && draft.city && cities[draft.city]) ? cities[draft.city] : [];
+  el.innerHTML = '<option value="">请选择区/县</option>' +
+    dists.map(d => `<option value="${esc(d)}">${esc(d)}</option>`).join('');
+  el.value = draft.district || '';
+  el.disabled = !draft.city;
+}
+function onProvChange(){
+  draft.province = $('#f-prov').value;
+  draft.city = ''; draft.district = '';
+  clearGeo();
+  markDirty(); renderCity();
+}
+function onCityChange(){
+  draft.city = $('#f-city').value;
+  draft.district = '';
+  clearGeo();
+  markDirty(); renderDist();
+}
+function onDistChange(){
+  draft.district = $('#f-dist').value;
+  markDirty();
+  if (!draft.district) { clearGeo(); geoManual = false; return; }
+  autoGeo(true, true);   // 地区变化：强制重新定位
+}
+
+/* ---- 地址自动定位：根据国家/地区/详细地址回写经纬度（R-MD65） ---- */
+function hashCode(s){
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+  return h;
+}
+function clearGeo(){ $('#f-lng').value = ''; $('#f-lat').value = ''; }
+function autoGeo(notify, force){
+  const p = draft.province, c = draft.city, d = draft.district;
+  if (!p || !c || !d) return false;
+  const base = GEO_DISTRICTS[p + '/' + c + '/' + d];
+  if (!base) return false;
+  if (!force && geoManual) return false;   // 手工修正过的坐标不被覆盖
+  const addr = ($('#f-address').value || '').trim();
+  let lng, lat;
+  const hit = GEO_KEYWORDS.find(k => addr.includes(k[0]));
+  if (hit) { lng = hit[1]; lat = hit[2]; }
+  else {
+    const h = hashCode(addr || (p + c + d));
+    lng = base[0] + ((h % 201) - 100) / 20000;
+    lat = base[1] + (((h >>> 8) % 201) - 100) / 20000;
+  }
+  const lngStr = Number(lng).toFixed(6), latStr = Number(lat).toFixed(6);
+  const changed = $('#f-lng').value !== lngStr || $('#f-lat').value !== latStr;
+  $('#f-lng').value = lngStr;
+  $('#f-lat').value = latStr;
+  geoManual = false;
+  if (changed) markDirty();
+  if (notify && changed) toast('已根据地址自动定位经纬度，可手工修正（R-MD65）', 'success');
+  return true;
+}
+function onAddrBlur(){ autoGeo(true, false); }
+function onGeoInput(){ geoManual = true; markDirty(); }
+
+/* ================= P2 表单：电子围栏 ================= */
+function onFenceChange(dirty){
+  const on = getRadio('f-fence') === '是';
+  ['#f-fence-dist', '#f-lng', '#f-lat'].forEach(s => { $(s).disabled = !on; });
+  const cnt = $('#sec-fence-cnt');
+  if (cnt) cnt.textContent = on ? '已启用' : '未启用';
+  if (on && dirty && (!$('#f-lng').value || !$('#f-lat').value)) autoGeo(true, false);
+  if (dirty) markDirty();
+}
+
+/* ================= P2 表单：附件 ================= */
+const ATTACH_EXTS = ['jpg','jpeg','png','pdf','doc','docx'];
+const ATTACH_MAX_SIZE = 10 * 1024 * 1024;
+const ATTACH_MAX_COUNT = 5;
+function renderAttach(){
+  const cnt = $('#sec-attach-cnt');
+  if (cnt) cnt.textContent = draft.attachments.length + ' 个附件';
+  $('#attach-tbody').innerHTML = draft.attachments.map((a, i) => `
+    <tr>
+      <td class="mono">${i + 1}</td>
+      <td>${esc(a.name)}</td>
+      <td class="mono">${fmtSize(a.size)}</td>
+      <td class="muted mono">${a.time ? esc(a.time) : '待保存'}</td>
+      <td><button class="act danger" onclick="delAttach(${i})">删除</button></td>
+    </tr>`).join('') || `<tr><td colspan="5" class="empty">暂无附件，点击【上传附件】添加提货指引或入场地图</td></tr>`;
+}
+function onFiles(input){
+  const files = Array.from(input.files || []);
+  input.value = '';
+  if (!files.length) return;
+  let added = 0;
+  for (const f of files) {
+    const ext = (f.name.split('.').pop() || '').toLowerCase();
+    if (!ATTACH_EXTS.includes(ext)) { toast(`附件 ${f.name} 类型不支持（R-MD63）`, 'error'); continue; }
+    if (f.size > ATTACH_MAX_SIZE) { toast(`附件 ${f.name} 超过 10MB（R-MD63）`, 'error'); continue; }
+    if (draft.attachments.length >= ATTACH_MAX_COUNT) { toast(`附件最多 ${ATTACH_MAX_COUNT} 个（R-MD63）`, 'error'); break; }
+    draft.attachments.push({ name:f.name, size:f.size, time:now() });
+    added++;
+  }
+  if (added) { formDirty = true; toast(`已添加 ${added} 个附件`, 'success'); }
+  renderAttach();
+}
+function delAttach(i){
+  draft.attachments.splice(i, 1);
+  formDirty = true; renderAttach();
+}
+
+/* ================= P2 表单：授权租户 ================= */
+function tenantSelect(i, selected){
+  const enabled = Object.keys(TENANTS).filter(k => TENANTS[k].status === '启用');
+  let opts = '<option value="">请选择租户</option>' + enabled.map(code =>
+    `<option value="${code}" ${code === selected ? 'selected' : ''}>${code} ${esc(TENANTS[code].name)}</option>`).join('');
+  if (selected && TENANTS[selected] && TENANTS[selected].status !== '启用') {
+    opts = `<option value="${selected}" selected>${selected} ${esc(TENANTS[selected].name)}（停用）</option>` + opts;
+  }
+  return `<select class="sel" onchange="onTenantId(${i}, this.value)">${opts}</select>`;
+}
+function renderTenants(){
+  const cnt = $('#sec-tenant-cnt');
+  if (cnt) cnt.textContent = draft.tenants.length + ' 个';
+  $('#tenant-tbody').innerHTML = draft.tenants.map((t, i) => {
+    const info = TENANTS[t.id];
+    return `<tr>
+      <td class="c-check"><input type="checkbox" class="row-check"></td>
+      <td class="mono">${i + 1}</td>
+      <td>${tenantSelect(i, t.id)}</td>
+      <td>${info ? esc(info.name) : '<span class="muted">未匹配</span>'}</td>
+      <td>${info ? (info.status === '启用' ? '<span class="status green">启用</span>' : '<span class="status gray">停用</span>') : '—'}</td>
+      <td class="muted mono">${t.linkedAt ? esc(t.linkedAt) : '待关联'}</td>
+    </tr>`;
+  }).join('') || `<tr><td colspan="6" class="empty">暂无授权租户，点击【新增行】选择租户后点击【关联】</td></tr>`;
+}
+function onTenantId(i, v){
+  draft.tenants[i].id = v;
+  draft.tenants[i].linkedAt = '';
+  formDirty = true; renderTenants();
+}
+function tenantAdd(){ draft.tenants.push({ id:'', linkedAt:'' }); formDirty = true; renderTenants(); }
+function tenantDel(){
+  const idx = $$('#tenant-tbody .row-check').map((c, i) => c.checked ? i : -1).filter(i => i >= 0);
+  if (!idx.length) { toast('请先勾选要删除的授权租户行', 'error'); return; }
+  idx.sort((a, b) => b - a).forEach(i => draft.tenants.splice(i, 1));
+  formDirty = true; renderTenants();
+}
+function linkTenants(){
+  if (!draft.tenants.length) { toast('请先【新增行】选择租户', 'error'); return; }
+  const ids = draft.tenants.map(t => (t.id || '').trim());
+  if (ids.some(v => !v)) { toast('请选择完整的租户后再关联', 'error'); return; }
+  const unknown = ids.filter(v => !TENANTS[v]);
+  if (unknown.length) { toast(`租户 ${unknown.join('、')} 不存在，请检查`, 'error'); return; }
+  const disabled = ids.filter(v => TENANTS[v].status !== '启用');
+  if (disabled.length) { toast(`租户 ${disabled.join('、')} 未启用，不可授权（R-MD62）`, 'error'); return; }
+  if (new Set(ids).size !== ids.length) { toast('同一租户不可重复授权（R-MD62）', 'error'); return; }
+  draft.tenants.forEach((t, i) => { t.id = ids[i]; if (!t.linkedAt) t.linkedAt = now(); });
+  formDirty = true; renderTenants();
+  toast(`授权成功，本地址已授权 ${draft.tenants.length} 个租户`, 'success');
+}
+
+/* ================= P2 表单 ================= */
+function markDirty(){ formDirty = true; }
+function openForm(mode, id){
+  editingId = mode === 'edit' ? id : null;
+  const src = mode === 'edit' ? addresses.find(c => c.id === id) : null;
+  draft = src ? JSON.parse(JSON.stringify(src))
+              : { id:'', name:'', country:'中国', province:'', city:'', district:'', address:'',
+                  alloc:'', postal:'', contact:'', phone:'', email:'', workTime:'',
+                  reserve:false, receipt:false, fence:false, fenceDist:'', lng:'', lat:'',
+                  enabled:true, attachments:[], tenants:[], referenced:false };
+  $('#p2-title').textContent = mode === 'edit' ? `编辑地址 · ${draft.id}` : '新增地址';
+  $('#p2-tag').textContent = mode === 'edit' ? 'P2 编辑模式' : 'P2 新增模式';
+  $('#f-id').disabled = mode === 'edit';
+  geoManual = false;
+  fillForm();
+  renderProv();
+  onFenceChange(false);
+  renderAttach(); renderTenants();
+  $$('#dlg-p2 .sec').forEach(s => s.classList.remove('closed'));
+  const mb = $('#dlg-p2 .modal-b'); if (mb) mb.scrollTop = 0;
+  formDirty = false; openModal('dlg-p2');
+}
+function fillForm(){
+  $('#f-id').value = draft.id; $('#f-name').value = draft.name;
+  $('#f-country').value = draft.country || '中国';
+  $('#f-alloc').value = draft.alloc || '';
+  $('#f-address').value = draft.address || '';
+  $('#f-postal').value = draft.postal || '';
+  $('#f-contact').value = draft.contact || '';
+  $('#f-phone').value = draft.phone || '';
+  $('#f-email').value = draft.email || '';
+  $('#f-worktime').value = draft.workTime || '';
+  $('#f-fence-dist').value = draft.fenceDist || '';
+  $('#f-lng').value = draft.lng || '';
+  $('#f-lat').value = draft.lat || '';
+  setRadio('f-enabled', draft.enabled ? '是' : '否');
+  setRadio('f-reserve', draft.reserve ? '是' : '否');
+  setRadio('f-receipt', draft.receipt ? '是' : '否');
+  setRadio('f-fence', draft.fence ? '是' : '否');
+}
+function saveForm(){
+  const id = $('#f-id').value.trim(), name = $('#f-name').value.trim();
+  const address = $('#f-address').value.trim();
+  const postal = $('#f-postal').value.trim(), phone = $('#f-phone').value.trim(), email = $('#f-email').value.trim();
+  const fenceOn = getRadio('f-fence') === '是';
+  const dist = $('#f-fence-dist').value.trim(), lng = $('#f-lng').value.trim(), lat = $('#f-lat').value.trim();
+  if (!id) { ensureSec(0); $('#f-id').focus(); toast('请填写地址编码', 'error'); return; }
+  if (!/^[A-Za-z0-9_-]+$/.test(id)) { ensureSec(0); toast('地址编码仅允许字母、数字、-、_', 'error'); return; }
+  if (!editingId && addresses.some(c => c.id === id)) { ensureSec(0); toast('地址编码已存在（R-MD57）', 'error'); return; }
+  if (!name) { ensureSec(0); $('#f-name').focus(); toast('请填写地址名称', 'error'); return; }
+  if (!draft.province || !draft.city || !draft.district) { ensureSec(0); toast('请选择完整的省/市/区（R-MD57）', 'error'); return; }
+  if (!address) { ensureSec(0); $('#f-address').focus(); toast('请填写详细地址', 'error'); return; }
+  if (postal && !/^\d{6}$/.test(postal)) { ensureSec(0); toast('邮编须为 6 位数字（R-MD59）', 'error'); return; }
+  if (phone && !/^(1[3-9]\d{9}|\d{3,4}-\d{7,8})$/.test(phone)) { ensureSec(1); toast('联系电话格式不正确（R-MD59）', 'error'); return; }
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { ensureSec(1); toast('电子邮箱格式不正确（R-MD59）', 'error'); return; }
+  if (fenceOn) {
+    if (!/^[1-9]\d*$/.test(dist)) { ensureSec(2); toast('启用电子围栏须填写围栏距离（正整数，单位米，R-MD58）', 'error'); return; }
+    if (!lng || !/^-?\d+(\.\d{1,6})?$/.test(lng) || +lng < -180 || +lng > 180) { ensureSec(2); toast('经度须为 -180~180，最多 6 位小数（R-MD58）', 'error'); return; }
+    if (!lat || !/^-?\d+(\.\d{1,6})?$/.test(lat) || +lat < -90 || +lat > 90) { ensureSec(2); toast('纬度须为 -90~90，最多 6 位小数（R-MD58）', 'error'); return; }
+  }
+  const tids = draft.tenants.map(t => (t.id || '').trim());
+  if (tids.some(v => !v)) { ensureSec(4); toast('租户不能为空，请选择或删除该行', 'error'); return; }
+  const unknown = tids.filter(v => !TENANTS[v] || TENANTS[v].status !== '启用');
+  if (unknown.length) { ensureSec(4); toast(`租户 ${unknown.join('、')} 不存在或未启用，不可授权（R-MD62）`, 'error'); return; }
+  if (new Set(tids).size !== tids.length) { ensureSec(4); toast('同一租户不可重复授权（R-MD62）', 'error'); return; }
+  draft.id = id; draft.name = name; draft.country = $('#f-country').value;
+  draft.address = address; draft.alloc = $('#f-alloc').value;
+  draft.postal = postal; draft.contact = $('#f-contact').value.trim();
+  draft.phone = phone; draft.email = email; draft.workTime = $('#f-worktime').value.trim();
+  draft.reserve = getRadio('f-reserve') === '是';
+  draft.receipt = getRadio('f-receipt') === '是';
+  draft.fence = fenceOn;
+  draft.fenceDist = fenceOn ? Number(dist) : (draft.fenceDist || '');
+  draft.lng = lng; draft.lat = lat;
+  draft.enabled = getRadio('f-enabled') === '是';
+  draft.tenants.forEach((t, i) => { t.id = tids[i]; if (!t.linkedAt) t.linkedAt = now(); });
+  draft.updateTime = now(); if (!draft.createdAt) draft.createdAt = now();
+  if (editingId) { const i = addresses.findIndex(c => c.id === editingId); draft.referenced = addresses[i].referenced; addresses[i] = draft; }
+  else { draft.referenced = false; addresses.push(draft); }
+  closeModal('dlg-p2'); sel.clear(); renderList(); editingId = null; formDirty = false;
+  if (!$('#screen-p3').classList.contains('hidden') && currentDetailId) openDetail(currentDetailId);
+  toast('保存成功', 'success');
+}
+function cancelForm(){
+  if (formDirty) openModal('dlg-leave');
+  else { editingId = null; closeModal('dlg-p2'); }
+}
+function leaveConfirm(){ closeModal('dlg-leave'); closeModal('dlg-p2'); editingId = null; formDirty = false; }
+
+/* ================= P3 详情 ================= */
+function openDetail(id){
+  currentDetailId = id;
+  const c = addresses.find(x => x.id === id); if (!c) return;
+  $('#p3-title').textContent = `地址详情 · ${c.id} ${c.name}`;
+  $('#p3-tags').innerHTML =
+    (c.enabled ? '<span class="status green">启用</span>' : '<span class="status gray">停用</span>') +
+    (c.fence ? ' <span class="status blue">电子围栏</span>' : '') +
+    (c.reserve ? ' <span class="status yellow">需要预约</span>' : '') +
+    (c.referenced ? ' <span class="status yellow">已被业务单据引用</span>' : '');
+  $('#p3-base').innerHTML = [
+    ['地址编码', `<span class="mono">${esc(c.id)}</span>`], ['地址名称', esc(c.name)],
+    ['国家', esc(c.country)], ['地区', esc(regionText(c))],
+    ['详细地址', esc(c.address)], ['分配区域', c.alloc ? esc(c.alloc) : '—'],
+    ['邮编', c.postal ? `<span class="mono">${esc(c.postal)}</span>` : '—'],
+    ['是否启用', c.enabled ? '是' : '否'],
+    ['最后更新时间', `<span class="mono">${esc(c.updateTime)}</span>`]
+  ].map(([k, v]) => `<div class="detail-field"><span>${k}</span><strong>${v}</strong></div>`).join('');
+  $('#p3-contact').innerHTML = [
+    ['联系人', c.contact ? esc(c.contact) : '—'],
+    ['联系电话', c.phone ? `<span class="mono">${esc(c.phone)}</span>` : '—'],
+    ['电子邮箱', c.email ? `<span class="mono">${esc(c.email)}</span>` : '—'],
+    ['工作时段', c.workTime ? esc(c.workTime) : '—'],
+    ['需要预约', c.reserve ? '是' : '否'],
+    ['是否创建回单', c.receipt ? '是' : '否']
+  ].map(([k, v]) => `<div class="detail-field"><span>${k}</span><strong>${v}</strong></div>`).join('');
+  $('#p3-fence').innerHTML = [
+    ['是否启用电子围栏', c.fence ? '是' : '否'],
+    ['围栏距离', c.fence ? `${Number(c.fenceDist).toLocaleString()} 米` : '—'],
+    ['经度', c.lng ? `<span class="mono">${esc(c.lng)}</span>` : '—'],
+    ['纬度', c.lat ? `<span class="mono">${esc(c.lat)}</span>` : '—']
+  ].map(([k, v]) => `<div class="detail-field"><span>${k}</span><strong>${v}</strong></div>`).join('');
+  $('#p3-attach').innerHTML = `<thead><tr><th style="width:44px">序号</th><th>文件名</th><th style="width:110px">大小</th><th style="width:170px">上传时间</th></tr></thead><tbody>` +
+    (c.attachments.map((a, i) => `<tr>
+      <td class="mono">${i + 1}</td>
+      <td><a class="link" href="javascript:;" onclick="toast('附件下载中…','info')">${esc(a.name)}</a></td>
+      <td class="mono">${fmtSize(a.size)}</td>
+      <td class="muted mono">${a.time ? esc(a.time) : '—'}</td></tr>`).join('') ||
+      `<tr><td colspan="4" class="empty">暂无提货指引附件</td></tr>`) + `</tbody>`;
+  $('#p3-tenant').innerHTML = `<thead><tr><th>租户ID</th><th>租户名称</th><th style="width:100px">租户状态</th><th style="width:170px">关联时间</th></tr></thead><tbody>` +
+    (c.tenants.map(t => {
+      const info = TENANTS[t.id];
+      return `<tr><td class="mono">${esc(t.id)}</td><td>${info ? esc(info.name) : '—'}</td>
+        <td>${info ? (info.status === '启用' ? '<span class="status green">启用</span>' : '<span class="status gray">停用</span>') : '—'}</td>
+        <td class="muted mono">${t.linkedAt ? esc(t.linkedAt) : '—'}</td></tr>`;
+    }).join('') || `<tr><td colspan="4" class="empty">未授权租户</td></tr>`) + `</tbody>`;
+  switchScreen('p3');
+}
+function p3Edit(){ if (currentDetailId) openForm('edit', currentDetailId); }
+
+/* ================= 顶部页签切换 ================= */
+$$('.ptab').forEach(t => t.addEventListener('click', () => {
+  const k = t.dataset.k;
+  if (k === 'p2') { openForm(editingId ? 'edit' : 'new', editingId || undefined); return; }
+  if (k === 'p3') { openDetail(currentDetailId || addresses[0].id); return; }
+  switchScreen(k);
+}));
+
+/* ================= 弹窗遮罩点击关闭 ================= */
+$$('.mask').forEach(m => m.addEventListener('click', e => {
+  if (e.target !== m) return;
+  if (m.id === 'dlg-p2') { cancelForm(); return; }
+  m.classList.add('hidden');
+}));
+
+/* ================= 初始化 ================= */
+renderList();
+</script>
+</body>
+</html>
